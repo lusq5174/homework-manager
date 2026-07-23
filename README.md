@@ -17,9 +17,9 @@
 
 ## 🚀 快速开始
 1. 克隆本项目或直接下载 `index.html`。
-2. 在 Supabase 中创建一张名为 `class_data` 的数据表（参考数据表结构）。
+2. 在 Supabase 中创建一张名为 `class_data` 的数据表并添加班级行（参考数据表结构）。
 3. 在 `设置` -> `绑定设置` 中填入你的 Supabase Project URL 和 anon/public Key。
-4. 刷新页面即可开始使用。
+4. 填写绑定码并绑定班级，刷新页面即可开始使用。
 
 ## 📦 数据表结构 (Supabase)
 ```sql
