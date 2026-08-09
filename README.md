@@ -1,6 +1,6 @@
-# 作业管理器 Homework Manager
-
 <div align="center">
+
+# 作业管理器 Homework Manager
 
 ![Version](https://img.shields.io/badge/version-2.1-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
@@ -377,7 +377,7 @@ globalSettings = {
 ```
 homework-manager/
 ├── index.html           # 主应用文件，包含全部 HTML、CSS、JavaScript
-├── 使用须知.pdf          # 面向普通用户的使用说明文档
+├── 使用须知.pdf          # 面向普通用户的使用须知文档
 ├── README.md            # 项目说明文档（本文件）
 └── LICENSE              # 开源许可证文件
 ```
