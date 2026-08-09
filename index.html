@@ -1,0 +1,2497 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>作业管理器</title>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+	<style>
+		* {
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+			font-family: 'Times New Roman', 'SimSun', serif;
+		}
+
+		body {
+			font-family: 'Times New Roman', 'SimSun', serif;
+			background: linear-gradient(to bottom right, #f0f9ff, #e0f2fe, #ede9fe);
+			min-height: 100vh;
+			overflow-x: hidden;
+		}
+
+		/* 顶部导航栏 */
+		.header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			background: rgba(255, 255, 255, 0.9);
+			backdrop-filter: blur(10px);
+			padding: 16px 24px;
+			box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+			z-index: 1000;
+			position: sticky;
+			top: 0;
+		}
+
+		.header h1 {
+			color: #333;
+			font-size: 20px;
+			font-weight: 600;
+		}
+
+		.header-buttons {
+			display: flex;
+			gap: 12px;
+		}
+
+		/* 通用按钮样式 */
+		.btn {
+			padding: 8px 16px;
+			border: none;
+			border-radius: 6px;
+			font-size: 14px;
+			font-weight: 500;
+			cursor: pointer;
+			transition: all 0.3s ease;
+			box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+		}
+
+		.btn:hover {
+			transform: translateY(-1px);
+			box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+			filter: brightness(0.9);
+		}
+
+		.btn-small {
+			padding: 4px 8px;
+			font-size: 12px;
+			height: 24px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			min-width: 24px;
+		}
+
+		.btn-lock.locked {
+			background-color: #F59E0B;
+			color: white;
+		}
+
+		.btn:disabled {
+			opacity: 0.5;
+			cursor: not-allowed;
+			transform: none;
+			box-shadow: none;
+		}
+
+		.homework-item.locked {
+			border: 1px solid #F59E0B;
+			background-color: #FFFBEB;
+			transition: all 0.3s ease;
+		}
+
+		.btn-success {
+			background-color: #10B981;
+			color: white;
+		}
+
+		.btn-danger {
+			background-color: #EF4444;
+			color: white;
+		}
+
+		.btn-warning {
+			background-color: #F59E0B;
+			color: white;
+		}
+
+		/* 主容器 */
+		.main-container {
+			display: grid;
+			grid-template-columns: 1fr 8fr 1fr;
+			gap: 16px;
+			padding: 16px;
+			min-height: calc(100vh - 64px);
+		}
+
+		/* 预览模式下的主容器布局 */
+		.preview-mode-active .main-container {
+			grid-template-columns: 1fr 7fr 2fr;
+		}
+
+		/* 左侧科目选择 */
+		.subject-sidebar {
+			background-color: white;
+			border-radius: 12px;
+			box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+			padding: 16px;
+			display: flex;
+			flex-direction: column;
+			gap: 5px;
+		}
+
+		.subject-item {
+			padding: 10px 12px;
+			border-radius: 6px;
+			cursor: pointer;
+			transition: all 0.3s ease;
+			text-align: center;
+			font-size: 14px;
+			font-weight: 500;
+			border: 1px solid transparent;
+		}
+
+		.subject-item:hover {
+			background-color: #f3f4f6;
+			transform: translateX(2px);
+		}
+
+		.subject-item.active {
+			background-color: #4F46E5;
+			color: white;
+			border-color: #4F46E5;
+		}
+
+		/* 中间主体内容 */
+		.main-content {
+			background-color: white;
+			border-radius: 12px;
+			box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+			padding: 24px;
+			overflow-y: auto;
+			min-height: calc(100vh - 96px);
+		}
+
+		/* 编辑模式 */
+		.edit-mode {
+			display: flex;
+			flex-direction: column;
+			gap: 20px;
+		}
+
+		.subject-info {
+			display: flex;
+			align-items: center;
+			gap: 16px;
+			margin-bottom: 8px;
+		}
+
+		.subject-info h2 {
+			font-size: 20px;
+			font-weight: 600;
+			color: #1f2937;
+		}
+
+		.estimated-time {
+			padding: 10px 12px;
+			border: 1px solid #d1d5db;
+			border-radius: 6px;
+			font-size: 14px;
+			transition: all 0.2s ease;
+			height: 38px;
+			width: 84px;
+			box-sizing: border-box;
+		}
+
+		.estimated-time:focus {
+			outline: none;
+			border-color: #4F46E5;
+			box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+		}
+
+		.add-homework-btn {
+			align-self: flex-start;
+		}
+
+		.homework-list {
+			display: flex;
+			flex-direction: column;
+			gap: 16px;
+		}
+
+		.homework-item {
+			display: flex;
+			flex-direction: column;
+			gap: 12px;
+			padding: 16px;
+			border: 1px solid #e5e7eb;
+			border-radius: 8px;
+			transition: all 0.3s ease;
+			position: relative;
+		}
+
+		.homework-item:hover {
+			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+			transform: translateY(-1px);
+		}
+
+		.homework-item.fade-out {
+			opacity: 0;
+			transform: translateY(-10px);
+		}
+
+		.homework-item.fade-in {
+			opacity: 0;
+			transform: translateY(-10px);
+			transition: all 0.3s ease;
+		}
+
+		.homework-content {
+			padding: 12px;
+			border: 1px solid #d1d5db;
+			border-radius: 6px;
+			font-size: 14px;
+			min-height: 84px;
+			resize: vertical;
+			font-family: inherit;
+			transition: all 0.2s ease;
+			flex: 1;
+		}
+
+		.homework-content:focus {
+			outline: none;
+			border-color: #4F46E5;
+			box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+		}
+
+		.announcement-text {
+			width: 100%;
+			min-height: 200px;
+			padding: 12px;
+			border: 1px solid #d1d5db;
+			border-radius: 6px;
+			font-size: 14px;
+			resize: vertical;
+			font-family: inherit;
+			transition: all 0.2s ease;
+		}
+
+		.announcement-text:focus {
+			outline: none;
+			border-color: #4F46E5;
+			box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+		}
+
+		.submit-time {
+			padding: 10px 12px;
+			border: 1px solid #d1d5db;
+			border-radius: 6px;
+			font-size: 14px;
+			width: 114px;
+			transition: all 0.2s ease;
+			height: 38px;
+			box-sizing: border-box;
+		}
+
+		.submit-time:focus {
+			outline: none;
+			border-color: #4F46E5;
+			box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+		}
+
+		.time-dropdown {
+			position: absolute;
+			top: 100%;
+			left: 0;
+			right: 0;
+			background-color: white;
+			border: 1px solid #ddd;
+			border-radius: 6px;
+			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+			z-index: 10000;
+			max-height: 170px;
+			overflow-y: auto;
+			display: none;
+			animation: none;
+			transition: none;
+		}
+
+		.time-option {
+			padding: 10px 12px;
+			cursor: pointer;
+			transition: background-color 0.2s;
+			font-size: 14px;
+		}
+
+		.time-option:hover {
+			background-color: #f3f4f6;
+		}
+
+		.delete-homework-btn {
+			padding: 10px 12px;
+			height: 84px;
+			box-sizing: border-box;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+
+		/* 预览模式 */
+		.preview-mode {
+			display: flex;
+			flex-direction: column;
+			gap: 20px;
+		}
+
+		.preview-subjects {
+			display: flex;
+			flex-direction: column;
+			gap: 24px;
+			padding: 20px;
+		}
+
+		.preview-subject {
+			display: flex;
+			flex-direction: column;
+		}
+
+		.preview-time {
+			background-color: #e0e0e0;
+			position: relative;
+		}
+
+		/* 右侧快捷键 */
+		.shortcut-sidebar {
+			background-color: white;
+			border-radius: 12px;
+			box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+			padding: 16px;
+			display: flex;
+			flex-direction: column;
+			gap: 8px;
+		}
+
+		.shortcut-title {
+			font-size: 14px;
+			font-weight: 600;
+			color: #6b7280;
+			margin-bottom: 8px;
+		}
+
+		.shortcut-item {
+			padding: 8px 12px;
+			border: 1px solid #d1d5db;
+			border-radius: 6px;
+			cursor: pointer;
+			transition: all 0.3s ease;
+			text-align: center;
+			font-size: 13px;
+			font-weight: 500;
+			background-color: #f9fafb;
+		}
+
+		.shortcut-item:hover {
+			background-color: #f3f4f6;
+			transform: translateY(-1px);
+		}
+
+		/* 模态框 */
+		.modal {
+			display: none;
+			position: fixed;
+			z-index: 2000;
+			left: 0;
+			top: 0;
+			width: 100%;
+			height: 100%;
+			background-color: rgba(0, 0, 0, 0.5);
+			overflow: auto;
+		}
+
+		.modal.active {
+			display: flex;
+			justify-content: center;
+			align-items: center;
+		}
+
+		.modal-content {
+			background-color: white;
+			padding: 32px;
+			border-radius: 12px;
+			width:500px;
+			height: 90%;
+			overflow: auto;
+			box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+		}
+
+		.modal-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 24px;
+		}
+
+		.modal-header h2 {
+			font-size: 20px;
+			font-weight: 600;
+			color: #1f2937;
+		}
+
+		.close-modal {
+			font-size: 24px;
+			font-weight: bold;
+			cursor: pointer;
+			color: #6b7280;
+			transition: color 0.2s;
+		}
+
+		.close-modal:hover {
+			color: #374151;
+		}
+
+		.tab-buttons {
+			display: flex;
+			margin-bottom: 24px;
+			border-bottom: 1px solid #e5e7eb;
+			width: 100%;
+		}
+
+		.tab-btn {
+			flex: 1;
+			text-align: center;
+			padding: 10px 20px;
+			border: none;
+			background: none;
+			cursor: pointer;
+			font-size: 14px;
+			font-weight: 500;
+			color: #6b7280;
+			border-bottom: 2px solid transparent;
+			transition: all 0.2s ease;
+		}
+
+		.tab-btn:hover {
+			color: #374151;
+		}
+
+		.tab-btn.active {
+			color: #4F46E5;
+			border-bottom-color: #4F46E5;
+		}
+
+		.tab-pane {
+			display: none;
+		}
+
+		.tab-pane.active {
+			display: block;
+		}
+
+		.setting-item {
+			margin-bottom: 20px;
+		}
+
+		.setting-item label {
+			display: block;
+			margin-bottom: 8px;
+			font-weight: 500;
+			color: #374151;
+		}
+
+		.setting-item input {
+			width: 100%;
+			padding: 10px 12px;
+			border: 1px solid #d1d5db;
+			border-radius: 6px;
+			font-size: 14px;
+			transition: all 0.2s ease;
+		}
+
+		.setting-item input:focus {
+			outline: none;
+			border-color: #4F46E5;
+			box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+		}
+
+		.options-container {
+			display: flex;
+			flex-direction: column;
+			gap: 12px;
+		}
+
+		.options-list {
+			display: flex;
+			flex-direction: column;
+			gap: 8px;
+		}
+
+		.option-item {
+			display: flex;
+			gap: 12px;
+			align-items: center;
+		}
+
+		.option-input {
+			height: 36px;
+			flex: 1;
+			padding: 8px 12px;
+			border: 1px solid #d1d5db;
+			border-radius: 6px;
+			font-size: 14px;
+		}
+
+		.delete-option-btn {
+			padding: 10px 15px;
+			font-size: 14px;
+		}
+
+		/* 设置选项动画 */
+		.option-item {
+			opacity: 1;
+			transform: translateY(0);
+			transition: all 0.3s ease;
+		}
+
+		.option-item.fade-out {
+			opacity: 0;
+			transform: translateY(-10px);
+		}
+
+		.option-item.fade-in {
+			opacity: 0;
+			transform: translateY(-10px);
+		}
+
+		/* 导出区域 */
+		#export-area {
+			display: none;
+		}
+
+		/* 响应式设计 */
+		@media (max-width: 992px) {
+			.main-container,
+			.preview-mode-active .main-container {
+				grid-template-columns: 1fr;
+				grid-template-rows: auto 1fr auto;
+			}
+
+			.subject-sidebar {
+				flex-direction: row;
+				flex-wrap: wrap;
+				justify-content: center;
+			}
+
+			.shortcut-sidebar {
+				flex-direction: row;
+				flex-wrap: wrap;
+				justify-content: center;
+			}
+
+			.shortcut-sidebar.announcement-mode {
+				flex-direction: column;
+				align-items: stretch;
+				justify-content: flex-start;
+			}
+		}
+
+		.header-class-select {
+			padding: 6px 10px;
+			border: 1px solid #d1d5db;
+			border-radius: 6px;
+			font-size: 14px;
+			background: #fff;
+			cursor: pointer;
+			height: 33px;
+			flex: 0 0 auto;
+			min-width: 100px;
+		}
+		.header-class-select:focus {
+			outline: none;
+			border-color: #4F46E5;
+			box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+		}
+		body:not(.preview-mode-active) #class-select {
+			display: none;
+		}
+		.section-card {
+			border: 1px solid #e5e7eb;
+			border-radius: 8px;
+			padding: 16px;
+			margin-bottom: 16px;
+			background: #f9fafb;
+		}
+		.section-title {
+			font-size: 16px;
+			font-weight: 700;
+			color: #1f2937;
+			margin-bottom: 12px;
+			border-bottom: 1px solid #e5e7eb;
+			padding-bottom: 8px;
+		}
+		.section-tip {
+			font-size: 16px;
+			color: #b45309;
+			margin-bottom: 12px;
+		}
+		.row-flex {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			margin-bottom: 12px;
+		}
+		.row-flex label {
+			min-width: 96px;
+			font-weight: 500;
+			color: #374151;
+			font-size: 14px;
+		}
+		.row-flex input[type="text"],
+		.row-flex input[type="number"] {
+			flex: 1;
+			padding: 8px 12px;
+			border: 1px solid #d1d5db;
+			border-radius: 6px;
+			font-size: 14px;
+			transition: all 0.2s ease;
+		}
+		.row-flex input:focus {
+			outline: none;
+			border-color: #4F46E5;
+			box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+		}
+		.checkbox-row {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			margin-bottom: 12px;
+		}
+		.checkbox-row input[type="checkbox"] {
+			width: 18px;
+			height: 18px;
+			cursor: pointer;
+		}
+		.checkbox-row label {
+			font-size: 14px;
+			color: #374151;
+			cursor: pointer;
+		}
+		.bind-code-box {
+			flex: 1;
+			padding: 8px 12px;
+			border: 1px solid #e5e7eb;
+			border-radius: 6px;
+			background: #f3f4f6;
+			color: #1f2937;
+			font-size: 14px;
+			font-family: 'Courier New', monospace;
+		}
+		.bound-class-grid {
+			display: flex;
+			flex-direction: column;
+			gap: 8px;
+			margin-top: 12px;
+		}
+		.bound-class-card {
+			border: 1px solid #e5e7eb;
+			border-radius: 8px;
+			padding: 10px 12px;
+			background: #fff;
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+			gap: 12px;
+		}
+		.bound-class-card .bc-name {
+			font-weight: 600;
+			font-size: 18px;
+			color: #1f2937;
+			word-break: break-all;
+			flex: 0 0 auto;
+			min-width: 80px;
+		}
+		.bound-class-card .bc-code-row {
+			display: flex;
+			align-items: center;
+			gap: 0px;
+			flex: 1;
+			min-width: 0;
+		}
+		.bound-class-card .bc-code {
+			font-size: 14px;
+			color: #1f2937;
+			font-family: 'Courier New', monospace;
+			background: #f3f4f6;
+			padding: 6px;
+			border-radius: 4px;
+			flex: 1;
+			word-break: break-all;
+		}
+		.bound-class-card .bc-copy {
+			font-size: 14px;
+			cursor: pointer;
+			color: #4F46E5;
+			background: transparent;
+			border: none;
+			padding: 4px 6px;
+			border-radius: 4px;
+			transition: all 0.2s;
+			flex: 0 0 auto;
+		}
+		.bound-class-card .bc-copy:hover {
+			background: #eef2ff;
+		}
+		.bound-class-card .bc-delete {
+			font-size: 14px;
+			color: #ef4444;
+			cursor: pointer;
+			background: transparent;
+			border: 1px solid transparent;
+			border-radius: 4px;
+			padding: 4px 8px;
+			flex: 0 0 auto;
+			white-space: nowrap;
+			transition: all 0.2s;
+		}
+		.bound-class-card .bc-delete:hover {
+			border-color: #ef4444;
+			background: #fef2f2;
+		}
+		.copy-btn {
+			padding: 8px 10px;
+			font-size: 14px;
+			border-radius: 6px;
+			flex: 0 0 auto;
+		}
+		.dynamic-settings-container {
+			display: flex;
+			flex-direction: column;
+		}
+		@media (max-width: 640px) {
+			.row-flex { flex-wrap: wrap; }
+			.row-flex label { min-width: 100%; }
+		}
+
+		/* 关于模态框样式 */
+		.about-content {
+			padding-top: 16px;
+		}
+		.about-section {
+			margin-bottom: 24px;
+			padding-bottom: 20px;
+			border-bottom: 1px solid #e5e7eb;
+		}
+		.about-section:last-child {
+			margin-bottom: 0;
+			padding-bottom: 0;
+			border-bottom: none;
+		}
+		.about-section-title {
+			font-size: 16px;
+			font-weight: 600;
+			color: #374151;
+			margin-bottom: 12px;
+			display: flex;
+			align-items: center;
+			gap: 8px;
+		}
+		.about-section-text {
+			margin-top: 6px;
+			font-size: 14px;
+			color: #6b7280;
+			line-height: 1.4;
+		}
+		.about-changelog {
+			display: flex;
+			flex-direction: column;
+			gap: 16px;
+		}
+		.changelog-item {
+			background-color: #f9fafb;
+			padding: 12px;
+			border-radius: 8px;
+		}
+		.changelog-version {
+			font-size: 14px;
+			font-weight: 600;
+			color: #4F46E5;
+			margin-right: 12px;
+		}
+		.changelog-date {
+			font-size: 12px;
+			color: #9ca3af;
+		}
+		.changelog-details {
+			list-style: none;
+			padding: 0;
+			margin: 8px 0 0 0;
+		}
+		.changelog-details li {
+			font-size: 13px;
+			color: #6b7280;
+			padding-left: 16px;
+			position: relative;
+			margin-bottom: 4px;
+		}
+		.changelog-details li::before {
+			content: '•';
+			position: absolute;
+			left: 0;
+			color: #4F46E5;
+		}
+		.about-dev-info {
+			font-size: 14px;
+			color: #6b7280;
+		}
+		.about-dev-info p {
+			margin-bottom: 6px;
+		}
+		.about-dev-info strong {
+			color: #374151;
+		}
+		.about-copyright {
+			text-align: center;
+			padding-top: 16px;
+		}
+		.about-copyright p {
+			font-size: 12px;
+			color: #505050;
+		}
+	</style>
+</head>
+<body class="preview-mode-active">
+	<!-- 顶部导航 -->
+	<div class="header">
+		<h1 style="flex: 0 0 auto;">作业管理器<span style="font-size: 16px; color: #33c5ff; margin-left: 8px;">V2.1</span></h1>
+		<select id="class-select" class="header-class-select" style="flex: 0 0 auto; margin-left: 12px;" onchange="onClassSelectChange(this.value)"></select>
+		<div id="important-date-display" style="flex: 1; font-size: 18px; color: #404040; white-space: nowrap; text-align: center; transition: opacity 0.5s ease;"></div>
+		<div class="header-buttons" style="flex: 0 0 auto;">
+			<button class="btn btn-success" onclick="exportToImage()">导出作业</button>
+			<button class="btn btn-danger" onclick="clearAllHomework()">快捷删除</button>
+			<button class="btn btn-warning" onclick="openSettings()">设置</button>
+			<button class="btn" style="background-color: #33c5ff; color: white;" onclick="openAbout()">关于</button>
+		</div>
+	</div>
+
+	<!-- 主容器 -->
+	<div class="main-container">
+		<!-- 左侧科目选择 -->
+		<div class="subject-sidebar">
+			<div class="subject-item active" data-subject="全部">全部</div>
+			<div class="subject-item" data-subject="语文">语文</div>
+			<div class="subject-item" data-subject="数学">数学</div>
+			<div class="subject-item" data-subject="英语">英语</div>
+			<div class="subject-item" data-subject="物理">物理</div>
+			<div class="subject-item" data-subject="化学">化学</div>
+			<div class="subject-item" data-subject="政治">政治</div>
+			<div class="subject-item" data-subject="历史">历史</div>
+			<div class="subject-item" data-subject="生物">生物</div>
+			<div class="subject-item" data-subject="地理">地理</div>
+			<div class="subject-item" data-subject="其他">其他</div>
+		</div>
+
+		<!-- 中间主体内容 -->
+		<div class="main-content" id="main-content">
+			<!-- 预览模式 -->
+		<div class="preview-mode" id="preview-mode" style="display: flex;">
+			<div class="preview-subjects" id="preview-subjects">
+				<div style="text-align:center;color:#888;padding:40px 0;">加载中...</div>
+			</div>
+		</div>
+
+		<!-- 编辑模式 -->
+		<div class="edit-mode" id="edit-mode" style="display: none;">
+			<div class="subject-info">
+				<h2 id="current-subject-title">语文</h2>
+				<button class="btn btn-success add-homework-btn" onclick="addHomework()">添加作业项</button>
+				<span style="margin-left:8px;font-size:14px;color:#868686;">修改作业后请点击「全部」栏目保存</span>
+			</div>
+			<div class="homework-list" id="homework-list">
+				<!-- 作业项将动态生成 -->
+			</div>
+		</div>
+		</div>
+
+		<!-- 右侧快捷键 -->
+		<div class="shortcut-sidebar announcement-mode" data-original-content="<div class=&quot;shortcut-title&quot;>快捷输入</div>">
+			<div style="display: flex; justify-content: space-between; align-items: center; font-size: 20px; font-weight: 600; color: #333; flex-wrap: wrap; gap: 8px;">
+				<span>公告</span>
+				<button class="btn btn-warning" onclick="editAnnouncement()" style="flex-shrink: 0; white-space: nowrap;">编辑</button>
+			</div>
+			<div id="announcement-content" style="font-size: 20px; line-height: 1.2; min-height: 200px;word-wrap: break-word; word-break: break-word; overflow-wrap: break-word; white-space: pre-wrap;">加载中...</div>
+			<div id="announcement-editor" style="display: none; margin-top: 12px;">
+				<textarea id="announcement-text" class="announcement-text"></textarea>
+				<div style="display: flex; gap: 8px; margin-top: 8px;">
+					<button class="btn btn-success" onclick="saveAnnouncement()">保存</button>
+					<button class="btn btn-danger" onclick="cancelEditAnnouncement()">取消</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- 设置模态框 -->
+	<div id="settings-modal" class="modal">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h2>设置</h2>
+				<span class="close-modal" onclick="closeSettings()">&times;</span>
+			</div>
+				<div>
+				<div class="tab-buttons">
+					<button class="tab-btn active" data-tab="class">班级设置</button>
+					<button class="tab-btn" data-tab="bind">绑定设置</button>
+					<button class="tab-btn" data-tab="shortcuts">快捷设置</button>
+					<button class="tab-btn" data-tab="important-dates">重要日期</button>
+				</div>
+				<div id="settings-dynamic-root" class="dynamic-settings-container">
+					<!-- 班级设置 -->
+					<div class="tab-pane active" id="class-tab">
+						<div class="section-tip">*完成本栏设置后请点击保存</div>
+						<div class="row-flex">
+							<label>班级名称</label>
+							<input type="text" id="cls-class-name" placeholder="请输入班级名称">
+						</div>
+						<div class="row-flex">
+							<label>绑定码</label>
+							<div class="bind-code-box" id="cls-bind-code-box">无</div>
+							<button class="btn btn-success copy-btn" onclick="copyCurrentBindCode(this)">复制</button>
+						</div>
+						<div class="row-flex">
+							<label>作业标题</label>
+							<input type="text" id="cls-export-title" placeholder="请输入作业标题">
+						</div>
+						<div class="row-flex">
+							<label>作业字号</label>
+							<input type="number" id="cls-export-font-size" min="12" max="72" placeholder="请输入字号">
+						</div>
+						<div class="checkbox-row">
+							<input type="checkbox" id="cls-export-add-date">
+							<label for="cls-export-add-date">添加日期</label>
+						</div>
+						<div class="checkbox-row">
+							<input type="checkbox" id="cls-auto-delete-daily">
+							<label for="cls-auto-delete-daily" title="勾选后，每天首次打开页面时自动删除未锁定作业项">每日自动删除作业</label>
+						</div>
+						<div style="text-align: right;">
+							<button class="btn btn-success" onclick="saveClassSettings()">保存</button>
+						</div>
+					</div>
+
+					<!-- 绑定设置 -->
+					<div class="tab-pane" id="bind-tab">
+						<div class="section-tip">*仅支持Supabase</div>
+						<div class="row-flex">
+							<label>Project URL</label>
+							<input type="text" id="sb-project-url" placeholder="https://xxx.supabase.co">
+						</div>
+						<div class="row-flex">
+							<label>API Key</label>
+							<input type="text" id="sb-api-key" placeholder="anon/public key">
+						</div>
+						<div class="row-flex">
+							<label>绑定码</label>
+							<input type="text" id="sb-bind-code" placeholder="输入绑定码加入班级">
+							<button class="btn btn-success" onclick="addClassByBindCode()">添加班级</button>
+						</div>
+						<div style="font-size:14px; color:#6b7280; margin-top:6px;">已绑定班级</div>
+						<div class="bound-class-grid" id="bound-class-grid"></div>
+					</div>
+
+					<!-- 快捷设置 -->
+					<div class="tab-pane" id="shortcuts-tab">
+						<div class="setting-item">
+							<label>快捷输入选项</label>
+							<div class="options-container">
+								<div class="options-list" id="shortcut-options-list"></div>
+								<button class="btn btn-success" onclick="addShortcutOption()">添加选项</button>
+							</div>
+						</div>
+						<div class="setting-item">
+							<label>提交时间快捷选项</label>
+							<div class="options-container">
+								<div class="options-list" id="time-options-list"></div>
+								<button class="btn btn-success" onclick="addTimeOption()">添加选项</button>
+							</div>
+						</div>
+					</div>
+
+					<!-- 重要日期 -->
+					<div class="tab-pane" id="important-dates-tab">
+						<div class="setting-item">
+							<label>重要日期</label>
+							<div class="options-container">
+								<div class="options-list" id="important-dates-list"></div>
+								<button class="btn btn-success" onclick="addImportantDateOption()">添加重要日期</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- 关于模态框 -->
+	<div id="about-modal" class="modal">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h2 style="text-align: center; flex: 1;">作业管理器<span style="font-size: 16px; color: #33c5ff; margin-left: 8px; font-weight: normal;">V2.1</span></h2>
+				<span class="close-modal" onclick="closeAbout()">&times;</span>
+			</div>
+			<div class="about-content">
+				<!-- 应用简介 -->
+				<div class="about-section">
+					<h3 class="about-section-title">📋 应用简介</h3>
+					<p class="about-section-text">作业管理器是一款轻量、高效、支持实时协作的班级作业管理工具，帮助教师更便捷地布置与管理作业。</p>
+					<p class="about-section-text">详细介绍见<a href="https://github.com/lusq5174/homework-manager/blob/main/README.md" target="_blank">使用说明文档</a></p>
+				</div>
+
+				<!-- 更新日志 -->
+				<div class="about-section">
+					<h3 class="about-section-title">📌 更新日志</h3>
+					<div class="about-changelog">
+						<div class="changelog-item">
+							<span class="changelog-version">V2.1</span>
+							<span class="changelog-date">2026-08-09</span>
+							<ul class="changelog-details">
+								<li>新增“关于”页面</li>
+								<li>修改上传数据逻辑，优化用户体验</li>
+								<li>修复主界面时间显示错误</li>
+								<li>修复其他已知问题，提升应用稳定性</li>
+							</ul>
+						</div>
+						<a href="https://github.com/lusq5174/homework-manager/releases.md" target="_blank">查看完整更新日志</a>
+					</div>
+				</div>
+
+				<!-- 项目地址 -->
+				<div class="about-section">
+					<h3 class="about-section-title">🔗 项目地址</h3>
+					<div class="about-dev-info">
+						<p><strong>Github：</strong><a href="https://github.com/lusq5174/homework-manager" target="_blank">https://github.com/lusq5174/homework-manager</a></p>
+						<p>欢迎提交 Issue 和 Pull Request 参与项目贡献。</p>
+					</div>
+				</div>
+
+				<!-- 版权信息 -->
+				<div class="about-section about-copyright">
+					<p>© 2025-2026 作业管理器. All rights reserved.</p>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- 用于导出图片的区域 -->
+	<div id="export-area"></div>
+
+	<script>
+		const $ = (selector) => document.querySelector(selector);
+		const $$ = (selector) => document.querySelectorAll(selector);
+
+		const elements = {
+			mainContent: $('#main-content'),
+			previewMode: $('#preview-mode'),
+			editMode: $('#edit-mode'),
+			previewSubjects: $('#preview-subjects'),
+			currentSubjectTitle: $('#current-subject-title'),
+			homeworkList: $('#homework-list'),
+			settingsModal: $('#settings-modal'),
+			exportArea: $('#export-area'),
+			classSelect: $('#class-select'),
+			importantDateDisplay: $('#important-date-display'),
+			shortcutOptionsList: null,
+			timeOptionsList: null,
+			importantDatesList: null,
+			init() {
+				this.shortcutOptionsList = document.getElementById('shortcut-options-list');
+				this.timeOptionsList = document.getElementById('time-options-list');
+				this.importantDatesList = document.getElementById('important-dates-list');
+			}
+		};
+
+		elements.init();
+
+		const subjects = [
+			"全部", "语文", "数学", "英语", "物理", "化学", "政治", "历史", "生物", "地理", "其他"
+		];
+
+		const DEFAULT_GLOBAL_SETTINGS = {
+			shortcuts: ["补充", "学评", "小题", "综素", "同步", "订正", "背诵", "练测", "学习笔记"],
+			timeOptions: ["晚前", "限时", "晚一", "晚二", "晚三", "明早", "明晚", "不收", "选做"],
+			importantDates: []
+		};
+
+		const DEFAULT_CLASS_SETTINGS = {
+			className: "本地班级",
+			bindCode: "无",
+			exportTitle: "班级作业",
+			exportAddDate: true,
+			exportFontSize: 30,
+			autoDeleteDaily: true
+		};
+
+		let classSettings = {...DEFAULT_CLASS_SETTINGS};
+		let globalSettings = {...DEFAULT_GLOBAL_SETTINGS};
+
+		let currentSubject = "全部";
+		let activeInput = null;
+		let homeworkData = {};
+
+		let supabaseClient = null;
+		let boundClasses = [];
+		let currentClassBindCode = null;
+		let sbRealtimeChannel = null;
+
+		const LS_KEYS = {
+			global: "homeworkManagerGlobalSettings",
+			localClass: "homeworkManagerLocalClassSettings",
+			boundClasses: "homeworkManagerBoundClasses",
+			currentClass: "homeworkManagerCurrentClass",
+			sbUrl: "homeworkManagerSupabaseUrl",
+			sbKey: "homeworkManagerSupabaseKey",
+			announcement: "homeworkManagerAnnouncement",
+			localHomework: "homeworkManagerData"
+		};
+
+		function autoDeleteLastRunKey(bindCode) {
+			return "homeworkManagerAutoDeleteLastRun_" + (bindCode || "");
+		}
+
+		const LOCAL_CLASS_CODE = "__LOCAL__";
+
+		function getLocal(key, fallback) {
+			try {
+				const v = localStorage.getItem(key);
+				return v == null ? fallback : JSON.parse(v);
+			} catch (e) { return fallback; }
+		}
+		function setLocal(key, value) {
+			localStorage.setItem(key, JSON.stringify(value));
+		}
+
+		function getSbCreds() {
+			return {
+				url: localStorage.getItem(LS_KEYS.sbUrl) || "",
+				key: localStorage.getItem(LS_KEYS.sbKey) || ""
+			};
+		}
+
+		function ensureSupabase() {
+			const { url, key } = getSbCreds();
+			if (!url || !key) { supabaseClient = null; return null; }
+			if (typeof supabase === "undefined" || typeof supabase.createClient !== "function") { supabaseClient = null; return null; }
+			if (!supabaseClient || supabaseClient._url !== url || supabaseClient._key !== key) {
+				supabaseClient = supabase.createClient(url, key);
+			}
+			return supabaseClient;
+		}
+
+		function hasSbCreds() {
+			const { url, key } = getSbCreds();
+			return !!url && !!key;
+		}
+
+		function isCurrentLocal() {
+			return currentClassBindCode === LOCAL_CLASS_CODE;
+		}
+
+		async function classExists(bindCode) {
+			const client = ensureSupabase();
+			if (!client) return false;
+			const { data, error } = await client.from("class_data").select("id").eq("bind_code", bindCode).limit(1);
+			if (error) return false;
+			return !!(data && data.length > 0);
+		}
+
+		async function fetchSbRow(bindCode) {
+			const client = ensureSupabase();
+			if (!client) return null;
+			const { data, error } = await client.from("class_data").select("*").eq("bind_code", bindCode).limit(1);
+			if (error) return null;
+			return data && data.length ? data[0] : null;
+		}
+
+		async function upsertSbRow(row) {
+			const client = ensureSupabase();
+			if (!client) return null;
+			const { data, error } = await client.from("class_data").upsert(row, { onConflict: "bind_code" }).select();
+			if (error) { console.error("upsertSbRow error", error); return null; }
+			return data && data.length ? data[0] : null;
+		}
+
+		async function fetchClassSettings(bindCode) {
+			if (bindCode === LOCAL_CLASS_CODE) {
+				const existing = getLocal(LS_KEYS.localClass, null);
+				if (existing && typeof existing === "object") {
+					return {...DEFAULT_CLASS_SETTINGS, ...existing, bindCode: "无"};
+				}
+				const defaults = {...DEFAULT_CLASS_SETTINGS, bindCode: "无"};
+				setLocal(LS_KEYS.localClass, defaults);
+				return defaults;
+			}
+			const row = await fetchSbRow(bindCode);
+			if (!row) return null;
+			const s = row.settings || {};
+			return {
+				className: row.class_name || (s.className || "班级"),
+				bindCode: row.bind_code,
+				exportTitle: s.exportTitle ?? DEFAULT_CLASS_SETTINGS.exportTitle,
+				exportAddDate: s.exportAddDate ?? DEFAULT_CLASS_SETTINGS.exportAddDate,
+				exportFontSize: s.exportFontSize ?? DEFAULT_CLASS_SETTINGS.exportFontSize,
+				autoDeleteDaily: s.autoDeleteDaily ?? DEFAULT_CLASS_SETTINGS.autoDeleteDaily
+			};
+		}
+
+		async function saveClassSettingsToStore(s) {
+			if (isCurrentLocal()) {
+				setLocal(LS_KEYS.localClass, s);
+				return true;
+			}
+			const row = await fetchSbRow(currentClassBindCode);
+			const newRow = {
+				bind_code: currentClassBindCode,
+				class_name: s.className || "班级",
+				settings: {
+					...((row && row.settings) || {}),
+					exportTitle: s.exportTitle,
+					exportAddDate: !!s.exportAddDate,
+					exportFontSize: Number(s.exportFontSize) || DEFAULT_CLASS_SETTINGS.exportFontSize,
+					autoDeleteDaily: !!s.autoDeleteDaily
+				},
+				homework_data: (row && row.homework_data) || {},
+				announcement: (row && row.announcement) || "",
+				updated_at: new Date().toISOString()
+			};
+			const res = await upsertSbRow(newRow);
+			return !!res;
+		}
+
+		function loadGlobalSettings() {
+			const g = getLocal(LS_KEYS.global, null);
+			if (g) globalSettings = {...DEFAULT_GLOBAL_SETTINGS, ...g};
+		}
+		function saveGlobalSettings() {
+			setLocal(LS_KEYS.global, globalSettings);
+		}
+
+		function loadBoundClasses() {
+			boundClasses = getLocal(LS_KEYS.boundClasses, []);
+		}
+		function saveBoundClasses() {
+			setLocal(LS_KEYS.boundClasses, boundClasses);
+		}
+
+		function loadCurrentClass() {
+			const cc = localStorage.getItem(LS_KEYS.currentClass);
+			currentClassBindCode = cc || LOCAL_CLASS_CODE;
+		}
+		function saveCurrentClass() {
+			if (currentClassBindCode) localStorage.setItem(LS_KEYS.currentClass, currentClassBindCode);
+		}
+
+		function refreshClassSelectOptions() {
+			const sel = elements.classSelect;
+			if (!sel) return;
+			sel.innerHTML = "";
+			const localOpt = document.createElement("option");
+			localOpt.value = LOCAL_CLASS_CODE;
+			localOpt.textContent = "本地班级";
+			sel.appendChild(localOpt);
+			boundClasses.forEach(bc => {
+				const opt = document.createElement("option");
+				opt.value = bc.bindCode;
+				opt.textContent = bc.className || bc.bindCode;
+				sel.appendChild(opt);
+			});
+			sel.value = currentClassBindCode || LOCAL_CLASS_CODE;
+		}
+
+		async function bindNewClass(bindCode) {
+			bindCode = (bindCode || "").trim().toUpperCase();
+			if (!bindCode) { alert("请输入绑定码"); return false; }
+			if (!ensureSupabase()) { alert("请检查 Project URL 和 API Key"); return false; }
+			const exists = await classExists(bindCode);
+			if (!exists) { alert("绑定码无效"); return false; }
+			if (!boundClasses.find(b => b.bindCode === bindCode)) {
+				const row = await fetchSbRow(bindCode);
+				boundClasses.push({
+					bindCode,
+					className: (row && row.class_name) || ("班级-" + bindCode)
+				});
+				saveBoundClasses();
+			}
+			refreshClassSelectOptions();
+			return true;
+		}
+
+		function removeBoundClass(bindCode) {
+			boundClasses = boundClasses.filter(b => b.bindCode !== bindCode);
+			saveBoundClasses();
+			if (currentClassBindCode === bindCode) {
+				currentClassBindCode = LOCAL_CLASS_CODE;
+				saveCurrentClass();
+			}
+			refreshClassSelectOptions();
+			renderBoundClassesUI();
+			updateClassSettingsUI();
+		}
+
+		async function applyCurrentClass(reloadHomework) {
+			const s = await fetchClassSettings(currentClassBindCode || LOCAL_CLASS_CODE);
+			if (s) classSettings = {...DEFAULT_CLASS_SETTINGS, ...s};
+			if (isCurrentLocal()) classSettings.bindCode = "无";
+			if (reloadHomework) await reloadHomeworkForCurrentClass();
+			if (reloadHomework && isCurrentLocal()) {
+				await runDailyAutoDeleteIfNeeded();
+			}
+			updatePreview();
+			updateClassSettingsUI();
+			const contentDiv = document.getElementById('announcement-content');
+			if (contentDiv) {
+				try {
+					const ann = await loadAnnouncement();
+					contentDiv.innerHTML = ann || '暂无公告';
+				} catch (e) {
+					contentDiv.innerHTML = (localStorage.getItem(LS_KEYS.announcement) || '') || '暂无公告';
+				}
+			}
+		}
+
+		async function reloadHomeworkForCurrentClass() {
+			unsubscribeRealtime();
+			initHomeworkData();
+			if (isCurrentLocal()) {
+				const saved = getLocal(LS_KEYS.localHomework, null);
+				if (saved && typeof saved === "object") {
+					Object.keys(saved).forEach(subj => {
+						if (homeworkData[subj]) homeworkData[subj] = saved[subj];
+					});
+				}
+				ensureHomeworkLockedProperty();
+				saveLocalHomework();
+				return;
+			}
+			const row = await fetchSbRow(currentClassBindCode);
+			const hw = (row && row.homework_data) || {};
+			subjects.forEach(subject => {
+				if (subject !== "全部") {
+					homeworkData[subject] = hw[subject] || { homeworks: [] };
+					if (!homeworkData[subject].homeworks) homeworkData[subject].homeworks = [];
+				}
+			});
+			ensureHomeworkLockedProperty();
+			setupRealtime();
+		}
+
+		function saveLocalHomework() {
+			localStorage.setItem(LS_KEYS.localHomework, JSON.stringify(homeworkData));
+		}
+
+		async function uploadHomeworkToSb() {
+			if (isCurrentLocal()) { saveLocalHomework(); return; }
+			const client = ensureSupabase();
+			if (!client) return;
+			const row = await fetchSbRow(currentClassBindCode);
+			const newRow = {
+				bind_code: currentClassBindCode,
+				class_name: classSettings.className || (row && row.class_name) || "班级",
+				settings: (row && row.settings) || {},
+				homework_data: homeworkData,
+				announcement: (row && row.announcement) || "",
+				updated_at: new Date().toISOString()
+			};
+			await upsertSbRow(newRow);
+		}
+
+		function setupRealtime() {
+			unsubscribeRealtime();
+			if (isCurrentLocal()) return;
+			const client = ensureSupabase();
+			if (!client) return;
+			try {
+				sbRealtimeChannel = client.channel("class_data_changes")
+					.on("postgres_changes",
+						{ event: "UPDATE", schema: "public", table: "class_data", filter: `bind_code=eq.${currentClassBindCode}` },
+						(payload) => {
+							try {
+								const row = payload.new || {};
+								if (row.class_name) classSettings.className = row.class_name;
+								const s = row.settings || {};
+								if (s.exportTitle != null) classSettings.exportTitle = s.exportTitle;
+								if (s.exportAddDate != null) classSettings.exportAddDate = !!s.exportAddDate;
+								if (s.exportFontSize != null) classSettings.exportFontSize = Number(s.exportFontSize) || DEFAULT_CLASS_SETTINGS.exportFontSize;
+								if (s.autoDeleteDaily != null) classSettings.autoDeleteDaily = !!s.autoDeleteDaily;
+								const hw = row.homework_data || {};
+								subjects.forEach(subject => {
+									if (subject !== "全部") {
+										homeworkData[subject] = hw[subject] || { homeworks: [] };
+										if (!homeworkData[subject].homeworks) homeworkData[subject].homeworks = [];
+									}
+								});
+								ensureHomeworkLockedProperty();
+								updateClassSettingsUI();
+								if (currentSubject === "全部") {
+									updatePreview();
+									const ann = row.announcement;
+									const contentDiv = document.getElementById('announcement-content');
+									const editorDiv = document.getElementById('announcement-editor');
+									if (contentDiv && (!editorDiv || editorDiv.style.display !== 'block')) {
+										contentDiv.innerHTML = (ann || '暂无公告');
+									}
+								} else {
+									updateHomeworkList();
+								}
+							} catch (e) { console.error("realtime apply error", e); }
+						})
+					.subscribe();
+			} catch (e) { console.warn("realtime init failed", e); }
+		}
+
+		function unsubscribeRealtime() {
+			if (sbRealtimeChannel) {
+				try { sbRealtimeChannel.unsubscribe(); } catch (e) {}
+				sbRealtimeChannel = null;
+			}
+		}
+
+		function saveData() {
+			if (isCurrentLocal()) {
+				saveLocalHomework();
+			}
+			if (currentSubject === "全部") updatePreview();
+		}
+
+		async function onClassSelectChange(code) {
+			if (code == null || code === currentClassBindCode) return;
+			currentClassBindCode = code;
+			saveCurrentClass();
+			const shortcutSidebar = document.querySelector('.shortcut-sidebar');
+			const contentDiv = document.getElementById('announcement-content');
+			if (shortcutSidebar && contentDiv) {
+				contentDiv.innerHTML = '加载中...';
+			}
+			const previewSubjects = document.getElementById('preview-subjects');
+			if (previewSubjects) previewSubjects.innerHTML = '<div style="text-align:center;color:#888;padding:40px 0;">加载中...</div>';
+			await applyCurrentClass(true);
+			updatePreview();
+		}
+
+		function copyCurrentBindCode(btnEl) {
+			const code = classSettings.bindCode || "无";
+			if (code === "无") return;
+			const origText = btnEl ? btnEl.textContent : "";
+			const flash = () => {
+				if (btnEl) btnEl.textContent = "复制成功";
+				setTimeout(() => { if (btnEl) btnEl.textContent = origText; }, 1000);
+			};
+			if (navigator.clipboard && navigator.clipboard.writeText) {
+				navigator.clipboard.writeText(code).then(flash).catch(() => fallbackCopy(code, flash));
+			} else {
+				fallbackCopy(code, flash);
+			}
+		}
+		function fallbackCopy(text, onSuccess) {
+			const ta = document.createElement("textarea");
+			ta.value = text;
+			document.body.appendChild(ta);
+			ta.select();
+			try { document.execCommand("copy"); if (onSuccess) onSuccess(); } catch (e) {}
+			document.body.removeChild(ta);
+		}
+
+		function renderBoundClassesUI() {
+			const grid = document.getElementById("bound-class-grid");
+			if (!grid) return;
+			grid.innerHTML = "";
+			boundClasses.forEach(bc => {
+				const card = document.createElement("div");
+				card.className = "bound-class-card";
+				card.innerHTML = `
+					<div class="bc-name">${escapeHtml(bc.className || "班级")}</div>
+					<div class="bc-code-row">
+						<span class="bc-code">${escapeHtml(bc.bindCode)}</span>
+						<button class="bc-copy" title="复制绑定码" onclick="copyTextInline(this,'${bc.bindCode}')">📋</button>
+					</div>
+					<button class="bc-delete" onclick="removeBoundClass('${bc.bindCode}')">移除绑定</button>
+				`;
+				grid.appendChild(card);
+			});
+		}
+
+		function escapeHtml(s) {
+			return String(s == null ? "" : s)
+				.replace(/&/g, "&amp;")
+				.replace(/</g, "&lt;")
+				.replace(/>/g, "&gt;")
+				.replace(/"/g, "&quot;");
+		}
+
+		window.copyTextInline = function(btnEl, text) {
+			const origText = btnEl ? btnEl.textContent : "";
+			const flash = () => {
+				if (btnEl) btnEl.textContent = "✅";
+				setTimeout(() => { if (btnEl) btnEl.textContent = origText; }, 1000);
+			};
+			if (navigator.clipboard && navigator.clipboard.writeText) {
+				navigator.clipboard.writeText(text).then(flash).catch(() => {
+					const ta = document.createElement("textarea");
+					ta.value = text; document.body.appendChild(ta); ta.select();
+					try { document.execCommand("copy"); flash(); } catch (e) {}
+					document.body.removeChild(ta);
+				});
+			} else {
+				const ta = document.createElement("textarea");
+				ta.value = text; document.body.appendChild(ta); ta.select();
+				try { document.execCommand("copy"); flash(); } catch (e) {}
+				document.body.removeChild(ta);
+			}
+		};
+
+		function updateClassSettingsUI() {
+			const nm = document.getElementById("cls-class-name");
+			const bc = document.getElementById("cls-bind-code-box");
+			const et = document.getElementById("cls-export-title");
+			const ef = document.getElementById("cls-export-font-size");
+			const ea = document.getElementById("cls-export-add-date");
+			const ad = document.getElementById("cls-auto-delete-daily");
+			const isLocal = isCurrentLocal();
+
+			if (nm) nm.value = classSettings.className || (isLocal ? "本地班级" : "班级");
+			if (et) et.value = classSettings.exportTitle || "";
+			if (ef) ef.value = classSettings.exportFontSize ?? "";
+			if (ea) ea.checked = !!classSettings.exportAddDate;
+			if (ad) ad.checked = !!classSettings.autoDeleteDaily;
+
+			if (bc) {
+				bc.textContent = isLocal ? "无" : (classSettings.bindCode || currentClassBindCode || "无");
+			}
+
+			const urlEl = document.getElementById("sb-project-url");
+			const keyEl = document.getElementById("sb-api-key");
+			const { url, key } = getSbCreds();
+			if (urlEl) urlEl.value = url || "";
+			if (keyEl) keyEl.value = key || "";
+			const bound = boundClasses.length > 0;
+			if (urlEl) urlEl.disabled = bound;
+			if (keyEl) keyEl.disabled = bound;
+			renderBoundClassesUI();
+		}
+
+		function openSettings() {
+			ensureSupabase();
+			loadGlobalSettings();
+			loadBoundClasses();
+			refreshClassSelectOptions();
+			(async () => {
+				await applyCurrentClass(false);
+				updateClassSettingsUI();
+			})();
+
+			const urlEl = document.getElementById("sb-project-url");
+			const keyEl = document.getElementById("sb-api-key");
+			if (urlEl && !urlEl.dataset.bound) {
+				urlEl.dataset.bound = "1";
+				urlEl.addEventListener("input", function() {
+					localStorage.setItem(LS_KEYS.sbUrl, this.value.trim());
+					ensureSupabase();
+				});
+			}
+			if (keyEl && !keyEl.dataset.bound) {
+				keyEl.dataset.bound = "1";
+				keyEl.addEventListener("input", function() {
+					localStorage.setItem(LS_KEYS.sbKey, this.value.trim());
+					ensureSupabase();
+				});
+			}
+
+			updateClassSettingsUI();
+			generateShortcutOptionsList();
+			generateTimeOptionsList();
+			generateImportantDatesList();
+			elements.settingsModal.classList.add('active');
+		}
+
+		function closeSettings() {
+			elements.settingsModal.classList.remove('active');
+		}
+
+		function openAbout() {
+			document.getElementById('about-modal').classList.add('active');
+		}
+
+		function closeAbout() {
+			document.getElementById('about-modal').classList.remove('active');
+		}
+
+		async function saveClassSettings() {
+			const nmEl = document.getElementById("cls-class-name");
+			const etEl = document.getElementById("cls-export-title");
+			const efEl = document.getElementById("cls-export-font-size");
+			const eaEl = document.getElementById("cls-export-add-date");
+			const adEl = document.getElementById("cls-auto-delete-daily");
+
+			const payload = {
+				className: (nmEl && nmEl.value.trim()) || (isCurrentLocal() ? "本地班级" : "班级"),
+				bindCode: classSettings.bindCode || (isCurrentLocal() ? "无" : currentClassBindCode),
+				exportTitle: (etEl && etEl.value.trim()) || "作业",
+				exportFontSize: parseInt(efEl && efEl.value) || DEFAULT_CLASS_SETTINGS.exportFontSize,
+				exportAddDate: !!(eaEl && eaEl.checked),
+				autoDeleteDaily: !!(adEl && adEl.checked)
+			};
+
+			if (isCurrentLocal()) {
+				setLocal(LS_KEYS.localClass, payload);
+				classSettings = {...payload};
+				alert("已保存班级设置");
+				updatePreview();
+				return;
+			}
+
+			const ok = await saveClassSettingsToStore(payload);
+			if (!ok) { alert("保存失败，请检查 Supabase 配置或网络"); return; }
+			classSettings = {...payload};
+			const bcItem = boundClasses.find(b => b.bindCode === currentClassBindCode);
+			if (bcItem) bcItem.className = payload.className;
+			saveBoundClasses();
+			refreshClassSelectOptions();
+			alert("已保存班级设置");
+			updatePreview();
+		}
+
+		async function addClassByBindCode() {
+			const input = document.getElementById("sb-bind-code");
+			const code = (input && input.value) || "";
+			if (!hasSbCreds()) { alert("请先填写 Project URL 和 API Key"); return; }
+			const ok = await bindNewClass(code);
+			if (ok && input) input.value = "";
+			renderBoundClassesUI();
+		}
+
+		function generateShortcutOptionsList() {
+			generateOptionsList(elements.shortcutOptionsList, globalSettings.shortcuts, 'updateShortcutOption', 'deleteShortcutOption');
+		}
+
+		function generateTimeOptionsList() {
+			generateOptionsList(elements.timeOptionsList, globalSettings.timeOptions, 'updateTimeOption', 'deleteTimeOption');
+		}
+
+		function generateOptionsList(container, items, updateFunc, deleteFunc, itemTemplate) {
+			container.innerHTML = '';
+			items.forEach((item, index) => {
+				const optionItem = document.createElement('div');
+				optionItem.className = 'option-item';
+				if (itemTemplate) {
+					optionItem.innerHTML = itemTemplate(item, index);
+				} else {
+					optionItem.innerHTML = `
+						<input type="text" class="option-input" value="${item}" oninput="${updateFunc}(${index}, this.value)">
+						<button class="btn btn-danger delete-option-btn" onclick="${deleteFunc}(${index})">删除</button>
+					`;
+				}
+				container.appendChild(optionItem);
+			});
+		}
+
+		function addOption(list, generateFunc, container) {
+			list.push(typeof list[0] === 'object' ? { name: '', date: '' } : '');
+			generateFunc();
+			const items = container.querySelectorAll('.option-item');
+			const last = items[items.length - 1];
+			if (last) { last.classList.add('fade-in'); setTimeout(() => last.classList.remove('fade-in'), 10); }
+		}
+
+		function deleteOption(list, generateFunc, container, index) {
+			const items = container.querySelectorAll('.option-item');
+			const target = items[index];
+			if (target) {
+				target.classList.add('fade-out');
+				setTimeout(() => {
+					list.splice(index, 1);
+					generateFunc();
+				}, 300);
+			}
+		}
+
+		function generateImportantDatesList() {
+			const dateTemplate = (date, index) => `
+				<input type="text" class="option-input" value="${escapeHtml(date.name)}" placeholder="日期名称" oninput="updateImportantDateName(${index}, this.value)">
+				<input type="date" class="option-input" value="${date.date}" oninput="updateImportantDateDate(${index}, this.value)">
+				<button class="btn btn-danger delete-option-btn" onclick="deleteImportantDate(${index})">删除</button>
+			`;
+			generateOptionsList(elements.importantDatesList, globalSettings.importantDates, null, null, dateTemplate);
+		}
+
+		function updateShortcutOption(index, value) {
+			globalSettings.shortcuts[index] = value; saveGlobalSettings();
+		}
+		function addShortcutOption() {
+			addOption(globalSettings.shortcuts, generateShortcutOptionsList, elements.shortcutOptionsList);
+		}
+		function deleteShortcutOption(index) {
+			deleteOption(globalSettings.shortcuts, generateShortcutOptionsList, elements.shortcutOptionsList, index);
+		}
+
+		function updateTimeOption(index, value) {
+			globalSettings.timeOptions[index] = value; saveGlobalSettings();
+		}
+		function addTimeOption() {
+			addOption(globalSettings.timeOptions, generateTimeOptionsList, elements.timeOptionsList);
+		}
+		function deleteTimeOption(index) {
+			deleteOption(globalSettings.timeOptions, generateTimeOptionsList, elements.timeOptionsList, index);
+		}
+
+		function updateImportantDateName(index, value) {
+			globalSettings.importantDates[index].name = value; saveGlobalSettings();
+			updateImportantDateDisplay(); checkAndStartScroll();
+		}
+		function updateImportantDateDate(index, value) {
+			globalSettings.importantDates[index].date = value; saveGlobalSettings();
+			updateImportantDateDisplay(); checkAndStartScroll();
+		}
+		function addImportantDateOption() {
+			globalSettings.importantDates.push({ name: '', date: '' }); saveGlobalSettings();
+			generateImportantDatesList();
+			const items = elements.importantDatesList.querySelectorAll(".option-item");
+			const last = items[items.length - 1];
+			if (last) { last.classList.add("fade-in"); setTimeout(() => last.classList.remove("fade-in"), 10); }
+			updateImportantDateDisplay(); checkAndStartScroll();
+		}
+		function deleteImportantDate(index) {
+			const items = elements.importantDatesList.querySelectorAll(".option-item");
+			const target = items[index];
+			if (target) {
+				target.classList.add("fade-out");
+				setTimeout(() => {
+					globalSettings.importantDates.splice(index, 1); saveGlobalSettings();
+					generateImportantDatesList();
+					updateImportantDateDisplay(); checkAndStartScroll();
+				}, 300);
+			}
+		}
+
+		let currentImportantDateIndex = 0;
+		let scrollTimer = null;
+
+		function calculateDaysUntilImportantDate(targetDate) {
+			const today = new Date();
+			today.setHours(0, 0, 0, 0);
+			const target = new Date(targetDate);
+			target.setHours(0, 0, 0, 0);
+			const timeDiff = target - today;
+			return Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+		}
+
+		function generateImportantDateText(date) {
+			if (!date.name || !date.date) return '';
+			const daysDiff = calculateDaysUntilImportantDate(date.date);
+			let text = '';
+			if (daysDiff > 0) {
+				text = `距离 ${date.name} 还有 ${daysDiff} 天`;
+			} else if (daysDiff === 0) {
+				text = `${date.name} 是今天`;
+			} else {
+				text = `${date.name} 已过去 ${Math.abs(daysDiff)} 天`;
+			}
+			return text;
+		}
+
+		function checkAndStartScroll() {
+			if (scrollTimer) { clearInterval(scrollTimer); scrollTimer = null; }
+			const valid = globalSettings.importantDates.filter(d => d.name && d.date);
+			if (valid.length > 1) {
+				scrollTimer = setInterval(updateImportantDateDisplay, 10000);
+			}
+		}
+
+		function updateImportantDateDisplay() {
+			const valid = globalSettings.importantDates.filter(d => d.name && d.date);
+			const display = document.getElementById("important-date-display") || elements.importantDateDisplay;
+			if (valid.length === 0) { display.textContent = ''; return; }
+			currentImportantDateIndex = currentImportantDateIndex % valid.length;
+			if (currentImportantDateIndex < 0) currentImportantDateIndex = valid.length - 1;
+			display.style.opacity = '0';
+			setTimeout(() => {
+				display.textContent = generateImportantDateText(valid[currentImportantDateIndex]);
+				display.style.opacity = '1';
+				currentImportantDateIndex++;
+			}, 250);
+		}
+
+		function startImportantDateScroll() {
+			const display = document.getElementById("important-date-display") || elements.importantDateDisplay;
+			display.style.opacity = '1';
+			updateImportantDateDisplay();
+			checkAndStartScroll();
+		}
+
+		async function switchSubject(subject) {
+			currentSubject = subject;
+			$$('.subject-item').forEach(item => item.classList.remove('active'));
+			const activeItem = document.querySelector(`.subject-item[data-subject="${subject}"]`);
+			if (activeItem) activeItem.classList.add('active');
+
+			if (subject === "全部") {
+				// 立刻切换到预览模式
+				document.body.classList.add('preview-mode-active');
+				elements.previewMode.style.display = "flex";
+				elements.editMode.style.display = "none";
+				
+				const shortcutSidebar = document.querySelector('.shortcut-sidebar');
+				if (shortcutSidebar) {
+					if (!shortcutSidebar.dataset.originalContent) {
+						shortcutSidebar.dataset.originalContent = '<div class="shortcut-title">快捷输入</div>';
+					}
+					shortcutSidebar.classList.add('announcement-mode');
+					if (!document.getElementById('announcement-content')) {
+						shortcutSidebar.innerHTML = `
+							<div style="display: flex; justify-content: space-between; align-items: center; font-size: 20px; font-weight: 600; color: #333; flex-wrap: wrap; gap: 8px;">
+								<span>公告</span>
+								<button class="btn btn-warning" onclick="editAnnouncement()" style="flex-shrink: 0; white-space: nowrap;">编辑</button>
+							</div>
+							<div id="announcement-content" style="font-size: 20px; line-height: 1.2; min-height: 200px;word-wrap: break-word; word-break: break-word; overflow-wrap: break-word; white-space: pre-wrap;">加载中...</div>
+							<div id="announcement-editor" style="display: none; margin-top: 12px;">
+								<textarea id="announcement-text" class="announcement-text"></textarea>
+								<div style="display: flex; gap: 8px; margin-top: 8px;">
+									<button class="btn btn-success" onclick="saveAnnouncement()">保存</button>
+									<button class="btn btn-danger" onclick="cancelEditAnnouncement()">取消</button>
+								</div>
+							</div>
+						`;
+					}
+				}
+				
+				if (!isCurrentLocal()) {
+					// 先显示预览内容（保持之前加载的数据）
+					updatePreview();
+					// 加载公告
+					loadAnnouncement().then(ann => {
+						const contentDiv = document.getElementById('announcement-content');
+						if (contentDiv) contentDiv.innerHTML = ann || '暂无公告';
+					}).catch(() => {
+						const contentDiv = document.getElementById('announcement-content');
+						if (contentDiv) contentDiv.innerHTML = (localStorage.getItem(LS_KEYS.announcement) || '') || '暂无公告';
+					});
+					// 后台异步上传，不阻塞UI
+					uploadHomeworkToSb().then(() => {
+						unsubscribeRealtime();
+						setupRealtime();
+					});
+				} else {
+					updatePreview();
+					try {
+						const ann = await loadAnnouncement();
+						const contentDiv = document.getElementById('announcement-content');
+						if (contentDiv) contentDiv.innerHTML = ann || '暂无公告';
+					} catch (e) {
+						const contentDiv = document.getElementById('announcement-content');
+						if (contentDiv) contentDiv.innerHTML = (localStorage.getItem(LS_KEYS.announcement) || '') || '暂无公告';
+					}
+				}
+			} else {
+				if (!isCurrentLocal()) unsubscribeRealtime();
+				document.body.classList.remove('preview-mode-active');
+				elements.previewMode.style.display = "none";
+				elements.editMode.style.display = "flex";
+				elements.currentSubjectTitle.textContent = subject;
+				updateHomeworkList();
+
+				const shortcutSidebar = document.querySelector('.shortcut-sidebar');
+				if (shortcutSidebar && shortcutSidebar.dataset.originalContent) {
+					shortcutSidebar.classList.remove('announcement-mode');
+					shortcutSidebar.innerHTML = shortcutSidebar.dataset.originalContent;
+					updateShortcutSidebar();
+				}
+			}
+		}
+
+		function init() {
+			loadGlobalSettings();
+			loadBoundClasses();
+			loadCurrentClass();
+			ensureSupabase();
+
+			refreshClassSelectOptions();
+
+			initHomeworkData();
+			loadGlobalHomeworkFallback();
+
+			(async () => {
+				await applyCurrentClass(true);
+				updatePreview();
+				startImportantDateScroll();
+				switchSubject("全部");
+				bindDomEvents();
+			})();
+		}
+
+		function loadGlobalHomeworkFallback() {
+			// 为兼容旧版本，若当前是本地班级且 localStorage 有老数据，直接复用
+			if (isCurrentLocal()) {
+				const old = getLocal("homeworkManagerData", null);
+				if (old && typeof old === "object" && !getLocal(LS_KEYS.localHomework, null)) {
+					Object.keys(old).forEach(subject => {
+						if (homeworkData[subject]) homeworkData[subject] = old[subject];
+					});
+					saveLocalHomework();
+				}
+			}
+		}
+
+		function bindDomEvents() {
+			$$('.subject-item').forEach(item => {
+				item.addEventListener('click', () => switchSubject(item.dataset.subject));
+			});
+
+			// 全局设置栏（快捷/重要日期）：输入即保存
+			const bindAutoSave = (selector, onChange) => {
+				document.addEventListener("input", (e) => {
+					if (e.target.matches(selector)) onChange(e);
+				});
+			};
+
+			bindAutoSave("#shortcut-options-list input.option-input", (e) => {
+				// 处理在选项函数中已直接 save
+			});
+			bindAutoSave("#time-options-list input.option-input", () => {});
+			bindAutoSave("#important-dates-list input", () => {});
+
+			let _mousedownOnModalBackdrop = false;
+			elements.settingsModal.addEventListener('mousedown', (e) => {
+				_mousedownOnModalBackdrop = (e.target === elements.settingsModal);
+			});
+			elements.settingsModal.addEventListener('click', (e) => {
+				if (_mousedownOnModalBackdrop && e.target === elements.settingsModal) {
+					closeSettings();
+				}
+				_mousedownOnModalBackdrop = false;
+			});
+
+			document.addEventListener('click', (event) => {
+				if (event.target.classList.contains('tab-btn')) {
+					const tab = event.target.dataset.tab;
+					switchTab(tab);
+				}
+			});
+
+			document.addEventListener('focus', (e) => {
+				if (e.target.classList.contains('homework-content') || e.target.classList.contains('submit-time') || e.target.classList.contains('estimated-time')) {
+					activeInput = e.target;
+				}
+			}, true);
+			document.addEventListener('mousedown', (e) => {
+				if (e.target.classList.contains('homework-content') || e.target.classList.contains('submit-time') || e.target.classList.contains('estimated-time')) {
+					activeInput = e.target;
+				}
+			}, true);
+		}
+
+		function switchTab(tab) {
+			$$('.tab-btn').forEach(btn => btn.classList.remove('active'));
+			$$('.tab-pane').forEach(pane => pane.classList.remove('active'));
+			$(`.tab-btn[data-tab="${tab}"]`).classList.add('active');
+			$(`#${tab}-tab`).classList.add('active');
+		}
+
+		init();
+
+		function todayKey() {
+			const d = new Date();
+			return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+		}
+
+		async function runDailyAutoDeleteIfNeeded() {
+			const localSettings = getLocal(LS_KEYS.localClass, null);
+			const enabled = !!(localSettings && localSettings.autoDeleteDaily);
+			if (!enabled) return;
+			const today = todayKey();
+			const lastRun = localStorage.getItem(autoDeleteLastRunKey(LOCAL_CLASS_CODE));
+			if (lastRun === today) return;
+			subjects.forEach(subject => {
+				if (subject === "全部" || !homeworkData[subject]) return;
+				homeworkData[subject].homeworks = homeworkData[subject].homeworks.filter(hw => hw.locked);
+			});
+			localStorage.setItem(autoDeleteLastRunKey(LOCAL_CLASS_CODE), today);
+			saveData();
+		}
+
+		function initHomeworkData() {
+			subjects.forEach(subject => {
+				if (subject !== "全部") homeworkData[subject] = { homeworks: [] };
+			});
+		}
+		function ensureHomeworkLockedProperty() {
+			subjects.forEach(subject => {
+				if (subject !== "全部" && homeworkData[subject]) {
+					homeworkData[subject].homeworks.forEach(homework => {
+						if (homework.locked === undefined) homework.locked = false;
+					});
+				}
+			});
+		}
+
+		async function loadAnnouncement() {
+			if (isCurrentLocal()) {
+				return localStorage.getItem(LS_KEYS.announcement) || "";
+			}
+			try {
+				const row = await fetchSbRow(currentClassBindCode);
+				return (row && row.announcement) || "";
+			} catch (e) {
+				return localStorage.getItem(LS_KEYS.announcement) || "";
+			}
+		}
+		function saveAnnouncementToLocal(a) {
+			localStorage.setItem(LS_KEYS.announcement, a || "");
+		}
+		async function saveAnnouncement() {
+			const textarea = document.getElementById('announcement-text');
+			const announcement = textarea ? textarea.value : "";
+			const contentDiv = document.getElementById('announcement-content');
+			const editorDiv = document.getElementById('announcement-editor');
+			const editButton = document.querySelector('.btn-warning[onclick="editAnnouncement()"]');
+
+			// 立刻更新UI
+			if (contentDiv) contentDiv.innerHTML = announcement || '暂无公告';
+			if (contentDiv) contentDiv.style.display = 'block';
+			if (editorDiv) editorDiv.style.display = 'none';
+			if (editButton) editButton.style.display = 'block';
+
+			// 后台异步保存
+			if (isCurrentLocal()) {
+				saveAnnouncementToLocal(announcement);
+			} else {
+				const client = ensureSupabase();
+				if (client) {
+					fetchSbRow(currentClassBindCode).then(row => {
+						upsertSbRow({
+							bind_code: currentClassBindCode,
+							class_name: (row && row.class_name) || classSettings.className,
+							settings: (row && row.settings) || {},
+							homework_data: (row && row.homework_data) || {},
+							announcement: announcement || "",
+							updated_at: new Date().toISOString()
+						});
+					});
+				}
+			}
+		}
+		function editAnnouncement() {
+			const contentDiv = document.getElementById('announcement-content');
+			const editorDiv = document.getElementById('announcement-editor');
+			const textarea = document.getElementById('announcement-text');
+			const editButton = document.querySelector('.btn-warning[onclick="editAnnouncement()"]');
+			if (contentDiv) contentDiv.style.display = 'none';
+			if (editorDiv) editorDiv.style.display = 'block';
+			if (editButton) editButton.style.display = 'none';
+			if (textarea && contentDiv) textarea.value = contentDiv.textContent || '';
+		}
+		function cancelEditAnnouncement() {
+			const contentDiv = document.getElementById('announcement-content');
+			const editorDiv = document.getElementById('announcement-editor');
+			const editButton = document.querySelector('.btn-warning[onclick="editAnnouncement()"]');
+			if (contentDiv) contentDiv.style.display = 'block';
+			if (editorDiv) editorDiv.style.display = 'none';
+			if (editButton) editButton.style.display = 'block';
+		}
+
+		function updateHomeworkList() {
+			const homeworks = homeworkData[currentSubject].homeworks;
+			elements.homeworkList.innerHTML = '';
+			homeworks.forEach((homework, index) => {
+				const homeworkItem = document.createElement('div');
+				homeworkItem.className = `homework-item ${homework.locked ? 'locked' : ''}`;
+				homeworkItem.dataset.index = index;
+				homeworkItem.innerHTML = `
+					<div style="display: flex; gap: 12px; align-items: flex-start;">
+						<div style="display: flex; flex-direction: column; gap: 4px;">
+							<button class="btn btn-small" onclick="moveHomeworkUp(${index})" ${index === 0 ? 'disabled' : ''}><span style="font-size: 14px;">↑</span></button>
+							<button class="btn btn-small" onclick="moveHomeworkDown(${index})" ${index === homeworkData[currentSubject].homeworks.length - 1 ? 'disabled' : ''}><span style="font-size: 14px;">↓</span></button>
+							<button class="btn btn-small btn-lock ${homework.locked ? 'locked' : ''}" onclick="toggleHomeworkLock(${index})"><span style="font-size: 14px;">${homework.locked ? '🔒' : '🔓'}</span></button>
+						</div>
+							<textarea class="homework-content" placeholder="作业内容" oninput="updateHomeworkContent(${index}, this.value)">${homework.content}</textarea>
+							<div style="display: flex; flex-direction: column; width: 114px; gap: 8px;">
+								<div>
+									<input type="text" class="submit-time" placeholder="提交时间" value="${homework.submitTime}" onfocus="showTimeDropdown(this)" onblur="hideTimeDropdown(this, event)" oninput="updateHomeworkSubmitTime(${index}, this.value)" data-index="${index}">
+								</div>
+								<div style="display: flex; align-items: center; gap: 5px;">
+									<input type="text" class="estimated-time" placeholder="预计时间" value="${homework.estimatedTime || ''}" oninput="updateHomeworkEstimatedTime(${index}, this.value)">
+									<span style="font-size: 14px; color: #6b7280;">min</span>
+								</div>
+							</div>
+							<button class="btn btn-danger delete-homework-btn" onclick="deleteHomework(${index})"><span style="font-size: 20px;">×</span></button>
+						</div>
+					`;
+				elements.homeworkList.appendChild(homeworkItem);
+			});
+		}
+
+		function updateHomeworkContent(index, content) {
+			homeworkData[currentSubject].homeworks[index].content = content;
+			saveData();
+		}
+		function updateHomeworkSubmitTime(index, submitTime) {
+			homeworkData[currentSubject].homeworks[index].submitTime = submitTime;
+			saveData();
+		}
+		function updateHomeworkEstimatedTime(index, estimatedTime) {
+			homeworkData[currentSubject].homeworks[index].estimatedTime = estimatedTime;
+			saveData();
+		}
+		function moveHomeworkUp(index) {
+			if (index > 0) {
+				const hw = homeworkData[currentSubject].homeworks;
+				[hw[index], hw[index - 1]] = [hw[index - 1], hw[index]];
+				saveData(); updateHomeworkList();
+			}
+		}
+		function moveHomeworkDown(index) {
+			const hw = homeworkData[currentSubject].homeworks;
+			if (index < hw.length - 1) {
+				[hw[index], hw[index + 1]] = [hw[index + 1], hw[index]];
+				saveData(); updateHomeworkList();
+			}
+		}
+		function toggleHomeworkLock(index) {
+			const hw = homeworkData[currentSubject].homeworks[index];
+			hw.locked = !hw.locked;
+			saveData(); updateHomeworkList();
+		}
+
+		const TimeSelector = {
+			dropdowns: new Map(),
+			showDropdown(input) {
+				let dropdown = this.dropdowns.get(input);
+				if (!dropdown) {
+					dropdown = document.createElement('div');
+					dropdown.className = 'time-dropdown';
+					document.body.appendChild(dropdown);
+					this.dropdowns.set(input, dropdown);
+				}
+				this.generateTimeOptions(input, dropdown);
+				const rect = input.getBoundingClientRect();
+				dropdown.style.left = `${rect.left}px`;
+				dropdown.style.top = `${rect.bottom + window.scrollY}px`;
+				dropdown.style.width = `${rect.width}px`;
+				dropdown.style.display = 'block';
+			},
+			hideDropdown(input) {
+				const d = this.dropdowns.get(input);
+				if (d) d.style.display = 'none';
+			},
+			generateTimeOptions(input, dropdown) {
+				dropdown.innerHTML = '';
+				globalSettings.timeOptions.forEach(option => {
+					const el = document.createElement('div');
+					el.className = 'time-option';
+					el.textContent = option;
+					el.onclick = (e) => {
+						e.stopPropagation();
+						const idx = parseInt(input.dataset.index);
+						homeworkData[currentSubject].homeworks[idx].submitTime = option;
+						input.value = option;
+						dropdown.style.display = 'none';
+						saveData();
+					};
+					dropdown.appendChild(el);
+				});
+			}
+		};
+		function showTimeDropdown(input) { TimeSelector.showDropdown(input); }
+		function hideTimeDropdown(input, event) {
+			setTimeout(() => {
+				const dropdown = TimeSelector.dropdowns.get(input);
+				const relatedTarget = event && event.relatedTarget;
+				if (!relatedTarget || (dropdown && !dropdown.contains(relatedTarget))) TimeSelector.hideDropdown(input);
+			}, 100);
+		}
+
+		function addHomework() {
+			homeworkData[currentSubject].homeworks.push({ content: "", estimatedTime: "", submitTime: "", locked: false });
+			updateHomeworkList();
+			const items = elements.homeworkList.querySelectorAll('.homework-item');
+			const last = items[items.length - 1];
+			if (last) {
+				last.classList.add('fade-in');
+				void last.offsetWidth;
+				last.classList.remove('fade-in');
+				const inp = last.querySelector('.homework-content');
+				if (inp) inp.focus();
+			}
+			saveData();
+		}
+		function deleteHomework(index) {
+			const hw = homeworkData[currentSubject].homeworks[index];
+			if (hw.locked && !confirm('此作业项已锁定，确定要删除吗？')) return;
+			const item = elements.homeworkList.children[index];
+			if (item) item.classList.add('fade-out');
+			setTimeout(() => {
+				homeworkData[currentSubject].homeworks.splice(index, 1);
+				updateHomeworkList();
+				saveData();
+			}, 300);
+		}
+
+		function generateExportContent() {
+			const exportContent = document.createElement('div');
+			exportContent.style.backgroundColor = '#ffffff';
+			exportContent.style.color = '#000000';
+			exportContent.style.fontFamily = "'Times New Roman', 'SimSun', serif";
+			exportContent.style.fontSize = `${classSettings.exportFontSize}px`;
+			exportContent.style.lineHeight = '1';
+			exportContent.style.textAlign = 'left';
+
+			const titleDiv = document.createElement('div');
+			titleDiv.style.fontSize = `${classSettings.exportFontSize * 1.1}px`;
+			titleDiv.style.marginBottom = `${classSettings.exportFontSize * 0.3}px`;
+			titleDiv.style.textAlign = 'left';
+
+			let titleContent = classSettings.exportTitle;
+			if (classSettings.exportAddDate) {
+				const currentDate = new Date().toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-');
+				titleContent += ` <span style="font-size: ${classSettings.exportFontSize * 0.8}px; font-weight: normal; color: #666666;">${currentDate}</span>`;
+			}
+			titleDiv.innerHTML = titleContent;
+			exportContent.appendChild(titleDiv);
+
+			const contentDiv = document.createElement('div');
+			contentDiv.style.textAlign = 'left';
+			contentDiv.style.fontSize = `${classSettings.exportFontSize}px`;
+			contentDiv.style.lineHeight = '1';
+			
+			// 科目缩写映射
+			const subjectAbbreviations = {
+				"语文": "语",
+				"数学": "数",
+				"英语": "英",
+				"物理": "物",
+				"化学": "化",
+				"政治": "政",
+				"历史": "史",
+				"生物": "生",
+				"地理": "地",
+				"其他": "另"
+			};
+			
+			subjects.forEach(subject => {
+				if (subject !== "全部") {
+					const subjectData = homeworkData[subject];
+					const validHomeworks = subjectData.homeworks.filter(hw => hw.content.trim() !== "");
+					
+					if (validHomeworks.length > 0) {
+						// 获取科目标题（使用缩写）
+						let subjectTitle = subjectAbbreviations[subject] || subject;
+						
+						// 为每个科目创建一个容器
+						const subjectLines = [];
+						
+						// 处理每个作业项
+						validHomeworks.forEach((homework, index) => {
+							const homeworkNumber = index + 1;
+							const contentLines = homework.content.split('\n');
+							
+							// 为作业创建行
+							contentLines.forEach((line, lineIndex) => {
+								let displayLine = '';
+								
+								if (lineIndex === 0) {
+									// 第一行
+									if (index === 0) {
+										// 第一项作业第一行
+										displayLine = `<strong>${subjectTitle}：</strong>${homeworkNumber}.${line}`;
+									} else {
+										// 后续作业第一行
+										displayLine = `&thinsp;&thinsp;&thinsp;&thinsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${homeworkNumber}.${line}`;
+									}
+								} else {
+									// 后续行
+									displayLine = `&thinsp;&thinsp;&thinsp;&thinsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${line}`;
+								}
+								
+								// 检查是否为最后一行
+								if (lineIndex === contentLines.length - 1) {
+									// 最后一行：添加提交时间和预计时间
+									let timeElements = '';
+									if (homework.submitTime) {
+										timeElements += `<span class="preview-time" style="font-size: ${classSettings.exportFontSize * 0.8}px; margin-left: ${classSettings.exportFontSize * 0.2}px; padding: ${classSettings.exportFontSize * 0.15}px ${classSettings.exportFontSize * 0.35}px; border-radius: ${classSettings.exportFontSize * 0.25}px; top: ${classSettings.exportFontSize * -0.1}px; background-color: #e0e0e0;">${homework.submitTime}</span>`;
+									}
+									if (homework.estimatedTime) {
+										timeElements += `<span class="preview-time" style="font-size: ${classSettings.exportFontSize * 0.8}px; margin-left: ${classSettings.exportFontSize * 0.2}px; padding: ${classSettings.exportFontSize * 0.15}px ${classSettings.exportFontSize * 0.35}px; border-radius: ${classSettings.exportFontSize * 0.25}px; top: ${classSettings.exportFontSize * -0.1}px; background-color: #e0e0e0;">${homework.estimatedTime}&thinsp;min</span>`;
+									}
+									
+									if (timeElements) {
+										displayLine += timeElements;
+									}
+								}
+								
+								subjectLines.push(displayLine);
+							});
+						});
+						
+						// 将科目行转换为HTML
+						const subjectHtml = subjectLines.map(line => `<div>${line}</div>`).join('');
+						const subjectDiv = document.createElement('div');
+						subjectDiv.className = 'preview-subject';
+						subjectDiv.innerHTML = subjectHtml;
+						subjectDiv.style.marginBottom = `${classSettings.exportFontSize * 0.2}px`;
+						subjectDiv.style.gap = `${classSettings.exportFontSize * 0.2}px`;
+						contentDiv.appendChild(subjectDiv);
+					}
+				}
+			});
+			
+			exportContent.appendChild(contentDiv);
+			
+			// 设置图片宽度随内容动态调整
+			const images = exportContent.querySelectorAll('img');
+			images.forEach(img => {
+				img.style.maxWidth = '100%';
+				img.style.height = 'auto';
+			});
+			
+			return exportContent;
+		}
+
+		// 更新预览
+		function updatePreview() {
+			elements.previewSubjects.innerHTML = '';
+			
+			// 使用统一的生成函数创建预览内容
+			const exportContent = generateExportContent();
+			elements.previewSubjects.appendChild(exportContent);
+		}
+
+		// 导出为图片
+		async function exportToImage() {
+			const exportArea = elements.exportArea;
+			exportArea.innerHTML = '';
+			exportArea.style.position = 'fixed';
+			exportArea.style.left = '-9999px';
+			exportArea.style.top = '0';
+			exportArea.style.display = 'block';
+			
+			// 使用统一的生成函数创建导出内容
+			const exportContent = generateExportContent();
+			exportContent.style.width = 'auto';
+			exportContent.style.maxWidth = 'none';
+			exportArea.appendChild(exportContent);
+			
+			// 等待DOM更新后获取正确尺寸
+			await new Promise(resolve => setTimeout(resolve, 100));
+			
+			// 使用html2canvas导出图片，确保宽度适应内容
+			try {
+				// 计算实际内容宽度
+				const contentWidth = exportContent.scrollWidth;
+				const contentHeight = exportContent.scrollHeight;
+				
+				const canvas = await html2canvas(exportContent, {
+					scale: 2,
+					useCORS: true,
+					width: contentWidth,
+					height: contentHeight,
+					x: 0,
+					y: 0,
+					backgroundColor: '#ffffff'
+				});
+				
+				const link = document.createElement('a');
+				link.download = `${new Date().toISOString().split('T')[0]}.png`;
+				link.href = canvas.toDataURL();
+				link.click();
+			} catch (error) {
+				console.error('导出图片失败:', error);
+				alert('导出图片失败，请重试');
+			} finally {
+				exportArea.style.display = 'none';
+				exportArea.style.position = '';
+				exportArea.style.left = '';
+				exportArea.style.top = '';
+			}
+		}
+
+		// 清空所有作业
+		function clearAllHomework() {
+			if (confirm('确定要清空所有科目的作业吗？此操作不可恢复。（锁定的作业项将被保留）')) {
+				// 保存锁定的作业项
+				const lockedHomeworks = {};
+				subjects.forEach(subject => {
+					if (subject !== "全部" && homeworkData[subject]) {
+						lockedHomeworks[subject] = {
+							homeworks: homeworkData[subject].homeworks.filter(homework => homework.locked)
+						};
+					}
+				});
+				
+				// 执行清空数据和恢复锁定项的操作
+				const doClear = () => {
+					initHomeworkData();
+					// 恢复锁定的作业项
+					subjects.forEach(subject => {
+						if (subject !== "全部" && lockedHomeworks[subject]) {
+							homeworkData[subject] = lockedHomeworks[subject];
+						}
+					});
+					saveData();
+					
+					// 上传到云端
+					if (!isCurrentLocal()) {
+						uploadHomeworkToSb();
+					}
+				};
+				
+				// 如果当前是编辑模式，添加淡出动画
+				if (currentSubject !== "全部") {
+					const homeworkItems = elements.homeworkList.querySelectorAll('.homework-item');
+					homeworkItems.forEach(item => {
+						item.classList.add('fade-out');
+					});
+					
+					// 等待动画完成后清空数据
+					setTimeout(() => {
+						doClear();
+						updateHomeworkList();
+						updatePreview();
+					}, 300);
+				} else {
+					// 如果当前是预览模式，添加淡出动画
+					const subjectItems = elements.previewSubjects.querySelectorAll('.preview-subject');
+					subjectItems.forEach(item => {
+						item.style.transition = 'all 0.3s ease';
+						item.style.opacity = '0';
+						item.style.transform = 'translateY(-10px)';
+					});
+					
+					// 等待动画完成后清空数据
+					setTimeout(() => {
+						doClear();
+						updatePreview();
+					}, 300);
+				}
+			}
+		}
+
+		function updateShortcutSidebar() {
+			if (currentSubject === "全部") return;
+			const sidebar = document.querySelector('.shortcut-sidebar');
+			if (!sidebar) return;
+			const shortcutItems = sidebar.querySelectorAll('.shortcut-item');
+			shortcutItems.forEach(item => item.remove());
+			const shortcutTitle = sidebar.querySelector('.shortcut-title');
+			globalSettings.shortcuts.forEach(shortcut => {
+				const shortcutItem = document.createElement('div');
+				shortcutItem.className = 'shortcut-item';
+				shortcutItem.dataset.text = shortcut;
+				shortcutItem.textContent = shortcut;
+				shortcutItem.onclick = function() {
+					const text = this.dataset.text;
+					if (activeInput) {
+						const start = activeInput.selectionStart;
+						const end = activeInput.selectionEnd;
+						const currentValue = activeInput.value;
+						const newValue = currentValue.substring(0, start) + text + currentValue.substring(end);
+						activeInput.value = newValue;
+						const newPosition = start + text.length;
+						activeInput.setSelectionRange(newPosition, newPosition);
+						activeInput.focus();
+						const inputEvent = new Event('input');
+						activeInput.dispatchEvent(inputEvent);
+					}
+				};
+				sidebar.appendChild(shortcutItem);
+			});
+		}
+	</script>
+</body>
+</html>
+
