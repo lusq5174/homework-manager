@@ -1340,9 +1340,12 @@
 			if (contentDiv) {
 				try {
 					const ann = await loadAnnouncement();
+					contentDiv.dataset.realContent = ann || '';
 					contentDiv.innerHTML = ann || '暂无公告';
 				} catch (e) {
-					contentDiv.innerHTML = (localStorage.getItem(LS_KEYS.announcement) || '') || '暂无公告';
+					const real = (localStorage.getItem(LS_KEYS.announcement) || '');
+					contentDiv.dataset.realContent = real;
+					contentDiv.innerHTML = real || '暂无公告';
 				}
 			}
 		}
@@ -1426,6 +1429,7 @@
 									const contentDiv = document.getElementById('announcement-content');
 									const editorDiv = document.getElementById('announcement-editor');
 									if (contentDiv && (!editorDiv || editorDiv.style.display !== 'block')) {
+										contentDiv.dataset.realContent = ann || '';
 										contentDiv.innerHTML = (ann || '暂无公告');
 									}
 								} else {
@@ -1857,10 +1861,17 @@
 					// 加载公告
 					loadAnnouncement().then(ann => {
 						const contentDiv = document.getElementById('announcement-content');
-						if (contentDiv) contentDiv.innerHTML = ann || '暂无公告';
+						if (contentDiv) {
+							contentDiv.dataset.realContent = ann || '';
+							contentDiv.innerHTML = ann || '暂无公告';
+						}
 					}).catch(() => {
 						const contentDiv = document.getElementById('announcement-content');
-						if (contentDiv) contentDiv.innerHTML = (localStorage.getItem(LS_KEYS.announcement) || '') || '暂无公告';
+						if (contentDiv) {
+							const real = (localStorage.getItem(LS_KEYS.announcement) || '');
+							contentDiv.dataset.realContent = real;
+							contentDiv.innerHTML = real || '暂无公告';
+						}
 					});
 					// 后台异步上传，不阻塞UI
 					uploadHomeworkToSb().then(() => {
@@ -1872,10 +1883,17 @@
 					try {
 						const ann = await loadAnnouncement();
 						const contentDiv = document.getElementById('announcement-content');
-						if (contentDiv) contentDiv.innerHTML = ann || '暂无公告';
+						if (contentDiv) {
+							contentDiv.dataset.realContent = ann || '';
+							contentDiv.innerHTML = ann || '暂无公告';
+						}
 					} catch (e) {
 						const contentDiv = document.getElementById('announcement-content');
-						if (contentDiv) contentDiv.innerHTML = (localStorage.getItem(LS_KEYS.announcement) || '') || '暂无公告';
+						if (contentDiv) {
+							const real = (localStorage.getItem(LS_KEYS.announcement) || '');
+							contentDiv.dataset.realContent = real;
+							contentDiv.innerHTML = real || '暂无公告';
+						}
 					}
 				}
 			} else {
@@ -2042,7 +2060,10 @@
 			const editButton = document.querySelector('.btn-warning[onclick="editAnnouncement()"]');
 
 			// 立刻更新UI
-			if (contentDiv) contentDiv.innerHTML = announcement || '暂无公告';
+			if (contentDiv) {
+				contentDiv.dataset.realContent = announcement || '';
+				contentDiv.innerHTML = announcement || '暂无公告';
+			}
 			if (contentDiv) contentDiv.style.display = 'block';
 			if (editorDiv) editorDiv.style.display = 'none';
 			if (editButton) editButton.style.display = 'block';
@@ -2074,7 +2095,16 @@
 			if (contentDiv) contentDiv.style.display = 'none';
 			if (editorDiv) editorDiv.style.display = 'block';
 			if (editButton) editButton.style.display = 'none';
-			if (textarea && contentDiv) textarea.value = contentDiv.textContent || '';
+			if (textarea) {
+				// 优先从 dataset 读取真实值，避免把显示占位文字（暂无公告）填入编辑器
+				if (contentDiv && typeof contentDiv.dataset.realContent === 'string') {
+					textarea.value = contentDiv.dataset.realContent;
+				} else if (contentDiv) {
+					textarea.value = contentDiv.textContent || '';
+				} else {
+					textarea.value = '';
+				}
+			}
 		}
 		function cancelEditAnnouncement() {
 			const contentDiv = document.getElementById('announcement-content');
