@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-2.0-blue)
+![Version](https://img.shields.io/badge/version-2.1-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Status](https://img.shields.io/badge/status-stable-brightgreen)
 
@@ -235,36 +235,9 @@ $$;
 
 作业管理器采用前后端分离的架构设计，前端为纯单页应用，后端基于 Supabase 提供 BaaS（Backend as a Service）能力。
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                     浏览器前端                           │
-│  ┌─────────────┐  ┌──────────────┐  ┌────────────────┐  │
-│  │   UI 层     │  │  业务逻辑层   │  │   数据层       │  │
-│  │  (HTML/CSS) │  │   (JS Core)  │  │ (Storage API)  │  │
-│  └─────────────┘  └──────────────┘  └───────┬────────┘  │
-│                                              │          │
-│                              ┌───────────────┴───────┐  │
-│                              │   存储适配器           │  │
-│                              │  ┌─────────────────┐  │  │
-│                              │  │  LocalStorage   │  │  │
-│                              │  └─────────────────┘  │  │
-│                              │  ┌─────────────────┐  │  │
-│                              │  │  Supabase SDK   │  │  │
-│                              │  └─────────────────┘  │  │
-│                              └───────────────────────┘  │
-└─────────────────────────────────────────────────────────┘
-                          │
-                          ▼
-              ┌───────────────────────┐
-              │   Supabase 后端       │
-              │  ┌─────────────────┐  │
-              │  │   PostgreSQL    │  │
-              │  └─────────────────┘  │
-              │  ┌─────────────────┐  │
-              │  │    Realtime     │  │
-              │  └─────────────────┘  │
-              └───────────────────────┘
-```
+- 浏览器前端：UI 层（HTML/CSS） + 业务逻辑层（JS Core） + 数据层（Storage API）
+
+- Supabase 后端：Supabase 数据库（PostgreSQL） + Realtime 订阅
 
 ### 核心模块划分
 
@@ -490,7 +463,7 @@ Git 提交信息建议遵循以下格式：
 
 ## 许可证
 
-本项目采用 MIT License 开源协议。
+本项目采用 [MIT License](https://github.com/lusq5174/homework-manager/blob/main/LICENSE) 开源协议。
 
 你可以自由地使用、复制、修改、合并、发布、分发、再许可和/或销售本软件的副本，以及允许向其提供本软件的人这样做，前提是在所有副本或软件的重要部分中包含上述版权声明和本许可声明。
 
@@ -515,6 +488,6 @@ Git 提交信息建议遵循以下格式：
 
 如果这个项目对你有帮助，欢迎给一个 Star 支持项目发展。
 
-Made by lusq
+Made by 𝑙𝑢𝑠𝑞
 
 </div>
