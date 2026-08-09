@@ -79,7 +79,7 @@
 
 ### 方式一：本地直接使用
 
-1. 下载 `作业管理器.html` 文件至本地
+1. 下载 `index.html` 文件至本地
 2. 双击文件，使用任意现代浏览器打开即可开始使用
 3. 所有数据自动保存在当前浏览器的 LocalStorage 中
 
@@ -87,13 +87,13 @@
 
 ### 方式二：部署到 Web 服务器
 
-将 `作业管理器.html` 上传到任意静态文件托管服务即可：
+将 `index.html` 上传到任意静态文件托管服务即可：
 
 ```bash
 # 使用 Python 快速启动本地服务器（开发测试用）
 python3 -m http.server 8080
 
-# 然后在浏览器访问 http://localhost:8080/作业管理器.html
+# 然后在浏览器访问 http://localhost:8080/index.html
 ```
 
 支持的部署平台包括但不限于：GitHub Pages、Vercel、Netlify、Cloudflare Pages、阿里云 OSS、腾讯云 COS 等。
