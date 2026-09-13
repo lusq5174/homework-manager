@@ -1,0 +1,1831 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>作业管理器（课堂端·美化版）</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <style>
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html.bp, body.bp {
+    margin: 0 !important; padding: 0 !important;
+    font-family: "Helvetica Neue", "PingFang SC", "Microsoft YaHei", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;
+    background: #faf7f2 !important;
+    color: #1a1a1a !important;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+  }
+  /* IMPORTANT: override any inline font-family set by original DOM.
+   * But preserve Material Icons font on .mi elements. */
+  body.bp *:not(.mi) { font-family: "Helvetica Neue", "PingFang SC", "Microsoft YaHei", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, Arial, sans-serif !important; -webkit-tap-highlight-color: transparent; }
+  body.bp .mi { -webkit-tap-highlight-color: transparent; }
+  body.bp { background-image: repeating-linear-gradient(45deg, transparent, transparent 24px, rgba(0,0,0,0.012) 24px, rgba(0,0,0,0.012) 25px); }
+  .bp button { cursor: pointer; }
+  .bp a { color: #1e3a8a; text-decoration: underline; }
+  .mi { font-family: "Material Icons"; font-style: normal; font-weight: normal;
+    -webkit-font-feature-settings: "liga"; font-feature-settings: "liga"; line-height: 1;
+    user-select: none; display: inline-block; vertical-align: middle;
+    -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+
+  /* Brutal core: thick border + hard shadow + NO border-radius */
+  .bp-card { border: 2.5px solid #1a1a1a; border-radius: 0; background: #fff; box-shadow: 5px 5px 0 #1a1a1a; }
+  .bp-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 14px; font-size: 13px; font-weight: 700;
+    border: 2.5px solid #1a1a1a; border-radius: 0;
+    background: #fff; color: #1a1a1a;
+    box-shadow: 3px 3px 0 #1a1a1a;
+    transition: transform 0.06s ease, box-shadow 0.06s ease;
+    white-space: nowrap;
+    user-select: none;
+    touch-action: manipulation;
+  }
+  .bp-btn:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 #1a1a1a; }
+  .bp-btn:active { transform: translate(3px, 3px); box-shadow: 0 0 0 transparent; }
+  .bp-btn .mi { font-size: 16px; }
+  .bp-btn-primary { background: #ffd8a8; color: #1a1a1a; }
+  .bp-btn-success { background: #c8f0d4; color: #1a1a1a; }
+  .bp-btn-danger { background: #ffb3b3; color: #1a1a1a; }
+  .bp-btn-icon { padding: 8px; }
+
+  /* Layout — drawer + main */
+  .bp-app { min-height: 100vh; display: flex; flex-direction: column; }
+  .bp-topbar {
+    position: sticky; top: 0; z-index: 20;
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px;
+    background: #fff; border-bottom: 3px solid #1a1a1a;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.08);
+  }
+  .bp-brand { display: flex; align-items: center; gap: 8px; font-weight: 900; font-size: 16px; color: #1a1a1a; flex: 0 0 auto; }
+  .bp-brand .mi { font-size: 24px; color: #7c2d3a; }
+  .bp-datebar { flex: 1 1 auto; display: flex; align-items: center; justify-content: center; gap: 12px; min-width: 0; }
+  .bp-impdate {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #dbeafe; color: #7c2d3a;
+    border: 2.5px solid #1a1a1a; border-radius: 0;
+    padding: 4px 12px; font-size: 13px; font-weight: 700;
+    box-shadow: 2px 2px 0 #1a1a1a;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%;
+  }
+  .bp-impdate .mi { font-size: 16px; }
+  .bp-clock {
+    font-size: 13px; color: #1a1a1a; font-weight: 700; font-variant-numeric: tabular-nums;
+    background: #f5e6c8; border: 2.5px solid #1a1a1a; padding: 4px 10px; border-radius: 0;
+    box-shadow: 2px 2px 0 #1a1a1a; flex: 0 0 auto;
+  }
+  .bp-menu-btn { display: none; }  /* hidden on desktop, shown on mobile */
+
+  /* Drawer (desktop: always visible left rail; mobile: hidden, toggled by menu btn) */
+  .bp-drawer {
+    width: 220px; flex: 0 0 220px;
+    background: #fff; border-right: 3px solid #1a1a1a;
+    padding: 16px 12px; display: flex; flex-direction: column; gap: 4px;
+    position: sticky; top: 56px; align-self: flex-start; height: calc(100vh - 56px); overflow-y: auto;
+  }
+  .bp-drawer-section { font-size: 11px; font-weight: 800; color: #555; padding: 12px 8px 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .bp-drawer-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; font-size: 13px; font-weight: 700; color: #1a1a1a;
+    border: 2px solid transparent; background: transparent; cursor: pointer;
+    transition: all 0.12s ease;
+  }
+  .bp-drawer-item:hover { background: #ffd8a8; border-color: #1a1a1a; }
+  .bp-drawer-item.active { background: #1a1a1a; color: #fff; }
+  .bp-drawer-item .mi { font-size: 18px; }
+  .bp-drawer-divider { height: 2px; background: #1a1a1a; margin: 8px 4px; }
+
+  /* Body wrapper */
+  .bp-layout { display: flex; flex: 1 1 auto; min-height: 0; }
+  .bp-main { flex: 1 1 auto; padding: 18px; max-width: 1400px; margin: 0 auto; width: 100%; min-width: 0; }
+
+  /* Sidebar subject chips (kept for quick navigation) */
+  .bp-subj-chips { display: flex; gap: 8px; overflow-x: auto; padding: 6px 0 10px; margin-bottom: 14px; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
+  .bp-subj-chip {
+    flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; font-size: 13px; font-weight: 700;
+    border: 2.5px solid #1a1a1a; border-radius: 0; background: #fff; color: #1a1a1a;
+    box-shadow: 2px 2px 0 #1a1a1a; cursor: pointer; white-space: nowrap;
+    transition: transform 0.08s ease;
+  }
+  .bp-subj-chip:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 #1a1a1a; }
+  .bp-subj-chip.active { background: var(--bg, #ffd8a8); }
+  .bp-subj-chip .bp-dot { width: 12px; height: 12px; border: 2px solid #1a1a1a; background: var(--bg); }
+  .bp-subj-chip .bp-cnt { font-size: 11px; padding: 1px 6px; border: 2px solid #1a1a1a; background: #1a1a1a; color: #fff; font-weight: 800; }
+
+  /* Preview header */
+  .bp-prev-head { padding: 16px 18px; margin-bottom: 14px; background: #ffd8a8; }
+  .bp-prev-title { font-size: 22px; font-weight: 900; color: #1a1a1a; margin: 0; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .bp-prev-title .bp-cn { background: #fff; border: 2.5px solid #1a1a1a; padding: 2px 12px; }
+  .bp-prev-title .bp-dt { font-size: 14px; font-weight: 600; color: #1a1a1a; }
+  .bp-stats { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; font-size: 12px; font-weight: 700; }
+  .bp-stat { display: inline-flex; align-items: center; gap: 4px; background: #fff; border: 2px solid #1a1a1a; padding: 3px 10px; }
+  .bp-stat .mi { font-size: 14px; }
+
+  /* Subject grid — auto-fill, brutal cards */
+  .bp-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px; margin-bottom: 14px;
+  }
+  .bp-subj-card { background: var(--bg); border: 2.5px solid var(--bd); border-radius: 0; box-shadow: 4px 4px 0 var(--bd); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+  .bp-subj-head { display: flex; align-items: center; gap: 8px; }
+  .bp-subj-ic { width: 32px; height: 32px; border: 2.5px solid var(--bd); border-radius: 0; display: flex; align-items: center; justify-content: center; background: #fff; color: var(--fg); }
+  .bp-subj-ic .mi { font-size: 18px; }
+  .bp-subj-nm { font-size: 16px; font-weight: 900; color: var(--fg); }
+  .bp-subj-cnt { margin-left: auto; font-size: 11px; font-weight: 800; padding: 2px 8px; background: var(--bd); color: #fff; }
+  .bp-hw-list { display: flex; flex-direction: column; gap: 6px; }
+  .bp-hw-item {
+    display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px;
+    background: #fff; border: 2px solid var(--bd); border-radius: 0;
+  }
+  .bp-hw-item.locked { background: var(--bg); box-shadow: inset 3px 0 0 var(--bd); }
+  .bp-hw-bull { flex: 0 0 auto; margin-top: 4px; width: 10px; height: 10px; border: 2px solid var(--bd); background: var(--bd); }
+  .bp-hw-content { flex: 1 1 auto; min-width: 0; }
+  .bp-hw-text { font-size: 14px; color: var(--fg, #1a1a1a); line-height: 1.55; word-break: break-word; font-weight: 600; }
+  .bp-hw-meta { margin-top: 4px; font-size: 11px; color: var(--fg, #555); display: flex; flex-wrap: wrap; gap: 8px; font-weight: 600; }
+  .bp-hw-meta span { display: inline-flex; align-items: center; gap: 3px; background: var(--bg); border: 1.5px solid var(--bd); padding: 1px 6px; }
+  .bp-hw-meta .mi { font-size: 13px; }
+  .bp-lock-badge { margin-left: auto; flex: 0 0 auto; display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; font-size: 11px; font-weight: 800; background: var(--bd); color: #fff; }
+  .bp-lock-badge .mi { font-size: 13px; }
+  .bp-empty-hw { padding: 10px; text-align: center; color: #555; font-size: 12px; border: 2px dashed var(--bd); }
+
+  /* Announcement */
+  .bp-ann-card { padding: 14px 16px; margin-bottom: 14px; background: #dbeafe; border-color: #1d4ed8; }
+  .bp-ann-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: #1d4ed8; font-weight: 900; font-size: 14px; }
+  .bp-ann-head .mi { font-size: 18px; }
+  .bp-ann-list { display: flex; flex-direction: column; gap: 6px; }
+  .bp-ann-item { display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; background: #fff; border: 2px solid #1d4ed8; }
+  .bp-ann-item.pinned { background: #dbeafe; }
+  .bp-ann-pin { flex: 0 0 auto; padding: 1px 7px; border: 2px solid #1d4ed8; background: #1d4ed8; color: #fff; font-size: 10px; font-weight: 800; display: inline-flex; align-items: center; gap: 3px; }
+  .bp-ann-pin .mi { font-size: 11px; }
+  .bp-ann-text { flex: 1 1 auto; font-size: 14px; color: #1d4ed8; line-height: 1.55; word-break: break-word; font-weight: 600; }
+  .bp-ann-empty { padding: 8px; text-align: center; color: #555; font-size: 12px; border: 2px dashed #1d4ed8; }
+
+  /* Edit mode */
+  .bp-edit-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+  .bp-edit-item { padding: 12px; background: #fff; border: 2.5px solid #1a1a1a; border-radius: 0; box-shadow: 3px 3px 0 #1a1a1a; }
+  .bp-edit-item.locked { background: #dbeafe; border-color: #1d4ed8; box-shadow: 3px 3px 0 #1d4ed8; }
+  .bp-edit-head { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+  .bp-edit-num { font-weight: 900; font-size: 12px; color: #1a1a1a; background: #ffd8a8; border: 2px solid #1a1a1a; padding: 1px 8px; }
+  .bp-edit-acts { margin-left: auto; display: flex; gap: 3px; }
+  .bp-edit-act { padding: 3px 6px; border: 2px solid #1a1a1a; background: #fff; color: #1a1a1a; display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 700; cursor: pointer; }
+  .bp-edit-act:hover { background: #ffd8a8; }
+  .bp-edit-act.active { background: #fde2e4; }
+  .bp-edit-act.del:hover { background: #ffb3b3; }
+  .bp-edit-act .mi { font-size: 13px; }
+  .bp-edit-row { margin-bottom: 6px; }
+  .bp-edit-row > label { display: block; font-size: 11px; color: #555; font-weight: 700; margin-bottom: 3px; }
+  .bp-edit-row input, .bp-edit-row textarea {
+    width: 100%; padding: 7px 10px; border: 2px solid #1a1a1a; border-radius: 0;
+    background: #fff; color: #1a1a1a; font-size: 14px; font-weight: 600;
+  }
+  .bp-edit-row input:focus, .bp-edit-row textarea:focus { outline: 2px solid #7c2d3a; }
+  .bp-edit-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .bp-edit-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+  .bp-edit-chip { padding: 2px 8px; border: 2px solid #1a1a1a; background: #fff; color: #1a1a1a; font-size: 11px; font-weight: 700; cursor: pointer; }
+  .bp-edit-chip:hover { background: #ffd8a8; }
+
+  /* State */
+  .bp-state { flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 60px 20px; text-align: center; }
+  .bp-state .mi { font-size: 56px; color: #7c2d3a; }
+  .bp-state h2 { margin: 0; color: #1a1a1a; font-size: 20px; font-weight: 900; }
+  .bp-state p { margin: 0; color: #555; font-size: 14px; max-width: 400px; line-height: 1.7; font-weight: 600; }
+  /* Brutal loader: three bouncing squares */
+  .bp-loader { display: flex; gap: 8px; align-items: flex-end; height: 20px; }
+  .bp-loader-dot { width: 14px; height: 14px; background: #1a1a1a; box-shadow: 2px 2px 0 #7c2d3a; animation: bp-bounce 0.5s ease-in-out infinite alternate; }
+  .bp-loader-dot:nth-child(2) { animation-delay: 0.15s; background: #7c2d3a; box-shadow: 2px 2px 0 #1a1a1a; }
+  .bp-loader-dot:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes bp-bounce { from { transform: translateY(0); } to { transform: translateY(-14px); } }
+
+  /* Modal — 修复"两个关闭按钮"问题：只在右上角放一个 X，actions 区不再放关闭 */
+  .bp-modal-bg { position: fixed; inset: 0; z-index: 50; background: rgba(26, 26, 26, 0.4); display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .bp-modal { background: #fff; border: 2.5px solid #1a1a1a; border-radius: 0; box-shadow: 8px 8px 0 #1a1a1a; padding: 18px; width: 100%; max-width: 520px; max-height: 88vh; overflow-y: auto; }
+  .bp-modal-head { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 2px solid #1a1a1a; }
+  .bp-modal-head h2 { margin: 0; font-size: 16px; font-weight: 900; color: #1a1a1a; flex: 1 1 auto; }
+  .bp-modal-head .mi { font-size: 22px; color: #7c2d3a; }
+  .bp-modal-x { flex: 0 0 auto; width: 30px; height: 30px; border: 2px solid #1a1a1a; background: #fff; color: #1a1a1a; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .bp-modal-x:hover { background: #ffb3b3; }
+  .bp-modal-x .mi { font-size: 18px; color: #1a1a1a; }
+  .bp-modal-actions { display: flex; gap: 6px; justify-content: flex-end; margin-top: 14px; flex-wrap: wrap; }
+  .bp-tabs { display: flex; gap: 4px; border-bottom: 2.5px solid #1a1a1a; margin-bottom: 14px; flex-wrap: wrap; padding-bottom: 4px; }
+  .bp-tab { padding: 6px 12px; border: 2px solid #1a1a1a; background: #fff; color: #1a1a1a; font-weight: 700; font-size: 12px; cursor: pointer; }
+  .bp-tab.active { background: #ffd8a8; }
+  .bp-tab:hover { background: #fde2e4; }
+  .bp-list-item { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; padding: 4px; border: 2px solid #1a1a1a; background: #fff; }
+  .bp-list-item input { flex: 1 1 auto; border: 2px solid #1a1a1a; padding: 5px 10px; font-size: 13px; background: #fff; color: #1a1a1a; }
+  .bp-list-item button { padding: 4px 6px; background: #fff; border: 2px solid #1a1a1a; color: #1a1a1a; cursor: pointer; }
+  .bp-list-item button:hover { background: #ffb3b3; }
+  .bp-tip { font-size: 12px; color: #1a1a1a; margin-bottom: 10px; padding: 8px 12px; background: #dbeafe; border: 2px solid #1a1a1a; font-weight: 600; }
+  .bp-bind-code { display: inline-block; padding: 4px 12px; background: #1a1a1a; color: #fff; border: 2px solid #1a1a1a; font-family: monospace; font-size: 14px; font-weight: 700; }
+
+  /* Footer */
+  .bp-footer { padding: 12px 18px; text-align: center; color: #555; font-size: 11px; font-weight: 600; border-top: 3px solid #1a1a1a; background: #fff; }
+
+  /* Evening mode */
+  body.bp-evening { overflow: hidden; }
+  body.bp-evening .bp-topbar, body.bp-evening .bp-layout, body.bp-evening .bp-footer { display: none; }
+  body.bp-evening .bp-evening-overlay { position: fixed; inset: 0; z-index: 60; background: #faf7f2; padding: 36px 4vw; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; }
+  body.bp-evening .bp-evening-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; border-bottom: 3px solid #1a1a1a; }
+  body.bp-evening .bp-evening-title { font-size: 5vw; font-weight: 900; color: #1a1a1a; }
+  body.bp-evening .bp-evening-date { font-size: 2.6vw; color: #555; font-weight: 600; }
+  body.bp-evening .bp-evening-clock { font-size: 4vw; font-weight: 900; color: #1a1a1a; font-variant-numeric: tabular-nums; background: #ffd8a8; border: 3px solid #1a1a1a; padding: 6px 18px; box-shadow: 5px 5px 0 #1a1a1a; }
+  body.bp-evening .bp-evening-yiyan { font-size: 3.2vw; font-weight: 700; color: #1d4ed8; padding: 18px 28px; background: #dbeafe; border: 3px solid #1a1a1a; box-shadow: 6px 6px 0 #1a1a1a; line-height: 1.6; min-height: 80px; display: flex; align-items: center; gap: 16px; }
+  body.bp-evening .bp-evening-yiyan .mi { font-size: 4vw; vertical-align: middle; flex: 0 0 auto; }
+  body.bp-evening .bp-evening-close { position: fixed; top: 20px; right: 20px; z-index: 70; background: #fff; border: 2.5px solid #1a1a1a; color: #1a1a1a; padding: 8px 14px; font-weight: 800; box-shadow: 3px 3px 0 #1a1a1a; cursor: pointer; }
+  body.bp-evening .bp-evening-close .mi { font-size: 18px; margin-right: 4px; }
+  body.bp-evening .bp-subj-nm { font-size: 2vw; }
+  body.bp-evening .bp-hw-text { font-size: 1.8vw; }
+  body.bp-evening .bp-hw-meta { font-size: 1.4vw; }
+
+  /* Dark theme — 重做：深棕黑底 + 暖白文字 + 淡雅的暖色块 */
+  body[data-theme="dark"].bp { background: #0f172a !important; color: #e2e8f0 !important;
+    background-image: repeating-linear-gradient(45deg, transparent, transparent 24px, rgba(255, 220, 180, 0.025) 24px, rgba(255, 220, 180, 0.025) 25px); }
+  body[data-theme="dark"].bp * { color: inherit; }
+  /* 但 .mi 用语义色 */
+  body[data-theme="dark"].bp .bp-card { background: #cbd5e1; border-color: #0f172a; box-shadow: 5px 5px 0 #0f172a; color: #0f172a; }
+  body[data-theme="dark"].bp .bp-btn { background: #1e293b; color: #e2e8f0; border-color: #e2e8f0; box-shadow: 3px 3px 0 #e2e8f0; }
+  body[data-theme="dark"].bp .bp-btn-primary { background: #60a5fa; color: #0f172a; border-color: #e2e8f0; }
+  body[data-theme="dark"].bp .bp-btn-success { background: #4ade80; color: #0f172a; border-color: #e2e8f0; }
+  body[data-theme="dark"].bp .bp-btn-danger { background: #f87171; color: #0f172a; border-color: #e2e8f0; }
+  body[data-theme="dark"].bp .bp-topbar { background: #1e293b; border-bottom-color: #e2e8f0; }
+  body[data-theme="dark"].bp .bp-brand { color: #e2e8f0; }
+  body[data-theme="dark"].bp .bp-brand .mi { color: #93c5fd; }
+  body[data-theme="dark"].bp .bp-drawer { background: #1e293b; border-right-color: #e2e8f0; }
+  body[data-theme="dark"].bp .bp-drawer-item { color: #e2e8f0; }
+  body[data-theme="dark"].bp .bp-drawer-item:hover { background: #1e3a8a; border-color: #e2e8f0; color: #e2e8f0; }
+  body[data-theme="dark"].bp .bp-drawer-item.active { background: #e2e8f0; color: #0f172a; }
+  body[data-theme="dark"].bp .bp-drawer-divider { background: #e2e8f0; }
+  body[data-theme="dark"].bp .bp-clock { background: #1e293b; color: #e2e8f0; border-color: #e2e8f0; box-shadow: 2px 2px 0 #e2e8f0; }
+  body[data-theme="dark"].bp .bp-impdate { background: #1e3a8a; color: #93c5fd; border-color: #e2e8f0; box-shadow: 2px 2px 0 #e2e8f0; }
+  body[data-theme="dark"].bp .bp-prev-head { background: #93c5fd; color: #0f172a; }
+  body[data-theme="dark"].bp .bp-prev-title { color: #0f172a; }
+  body[data-theme="dark"].bp .bp-prev-title .bp-cn { background: #fff; color: #0f172a; border-color: #0f172a; }
+  body[data-theme="dark"].bp .bp-stat { background: #fff; color: #0f172a; border-color: #0f172a; }
+  body[data-theme="dark"].bp .bp-subj-chip { background: #fff; color: #0f172a; border-color: #0f172a; box-shadow: 2px 2px 0 #0f172a; }
+  body[data-theme="dark"].bp .bp-subj-chip.active { background: var(--bg); color: #0f172a; }
+  body[data-theme="dark"].bp .bp-hw-item { background: #f1f5f9; border-color: var(--bd); color: #0f172a; }
+  body[data-theme="dark"].bp .bp-hw-item.locked { background: #e2e8f0; }
+  body[data-theme="dark"].bp .bp-hw-text { color: var(--fg); }
+  body[data-theme="dark"].bp .bp-hw-meta { color: #94a3b8; }
+  body[data-theme="dark"].bp .bp-hw-meta span { background: var(--bg); border-color: var(--bd); color: #0f172a; }
+  body[data-theme="dark"].bp .bp-lock-badge { background: var(--bd); color: #fff; }
+  body[data-theme="dark"].bp .bp-subj-ic { background: #fff; color: var(--fg); }
+  body[data-theme="dark"].bp .bp-subj-cnt { background: var(--bd); color: #fff; }
+  body[data-theme="dark"].bp .bp-ann-item { background: #f1f5f9; color: #0f172a; border-color: #1d4ed8; }
+  body[data-theme="dark"].bp .bp-ann-item.pinned { background: #dbeafe; }
+  body[data-theme="dark"].bp .bp-ann-card { background: #dbeafe; border-color: #1d4ed8; color: #0f172a; }
+  body[data-theme="dark"].bp .bp-ann-head { color: #1d4ed8; }
+  body[data-theme="dark"].bp .bp-ann-pin { background: #1d4ed8; color: #fff; border-color: #1d4ed8; }
+  body[data-theme="dark"].bp .bp-edit-item { background: #f1f5f9; border-color: #0f172a; box-shadow: 3px 3px 0 #0f172a; color: #0f172a; }
+  body[data-theme="dark"].bp .bp-edit-item.locked { background: #dbeafe; border-color: #1d4ed8; box-shadow: 3px 3px 0 #1d4ed8; }
+  body[data-theme="dark"].bp .bp-edit-row input,
+  body[data-theme="dark"].bp .bp-edit-row textarea,
+  body[data-theme="dark"].bp .bp-field input,
+  body[data-theme="dark"].bp .bp-field textarea { background: #fff; color: #0f172a; border-color: #0f172a; }
+  body[data-theme="dark"].bp .bp-edit-row input:focus,
+  body[data-theme="dark"].bp .bp-edit-row textarea:focus { outline-color: #1d4ed8; }
+  body[data-theme="dark"].bp .bp-edit-act,
+  body[data-theme="dark"].bp .bp-edit-num,
+  body[data-theme="dark"].bp .bp-edit-chip { background: #fff; color: #0f172a; border-color: #0f172a; }
+  body[data-theme="dark"].bp .bp-edit-act:hover { background: #dbeafe; }
+  body[data-theme="dark"].bp .bp-edit-act.active { background: #fde2e4; }
+  body[data-theme="dark"].bp .bp-edit-chip:hover,
+  body[data-theme="dark"].bp .bp-tab:hover { background: #dbeafe; }
+  body[data-theme="dark"].bp .bp-edit-num { background: #93c5fd; color: #0f172a; border-color: #0f172a; }
+  body[data-theme="dark"].bp .bp-modal { background: #f1f5f9; border-color: #0f172a; box-shadow: 8px 8px 0 #0f172a; color: #0f172a; }
+  body[data-theme="dark"].bp .bp-modal-head h2 { color: #0f172a; }
+  body[data-theme="dark"].bp .bp-modal-head { border-bottom-color: #0f172a; }
+  body[data-theme="dark"].bp .bp-tabs { border-bottom-color: #0f172a; }
+  body[data-theme="dark"].bp .bp-tab { background: #fff; color: #0f172a; border-color: #0f172a; }
+  body[data-theme="dark"].bp .bp-tab.active { background: #93c5fd; color: #0f172a; }
+  body[data-theme="dark"].bp .bp-tip { background: #dbeafe; color: #1d4ed8; border-color: #1d4ed8; }
+  body[data-theme="dark"].bp .bp-state h2 { color: #e2e8f0; }
+  body[data-theme="dark"].bp .bp-state p { color: #94a3b8; }
+  body[data-theme="dark"].bp .bp-state .mi { color: #93c5fd; }
+  body[data-theme="dark"].bp .bp-evening-overlay { background: #0f172a; color: #e2e8f0; }
+  body[data-theme="dark"].bp .bp-evening-title { color: #e2e8f0; }
+  body[data-theme="dark"].bp .bp-evening-date { color: #94a3b8; }
+  body[data-theme="dark"].bp .bp-evening-clock { background: #1e3a8a; color: #e2e8f0; border-color: #e2e8f0; box-shadow: 5px 5px 0 #e2e8f0; }
+  body[data-theme="dark"].bp .bp-evening-yiyan { background: #1e3a8a; color: #93c5fd; border-color: #e2e8f0; box-shadow: 4px 4px 0 #e2e8f0; }
+  body[data-theme="dark"].bp .bp-footer { background: #1e293b; color: #94a3b8; border-top-color: #e2e8f0; }
+  body[data-theme="dark"].bp .bp-bind-code { background: #e2e8f0; color: #0f172a; border-color: #e2e8f0; }
+
+  /* Toast */
+  .bp-toast { position: fixed; top: 20px; right: 20px; z-index: 90; background: #fff; border: 2.5px solid #1a1a1a; padding: 10px 16px; box-shadow: 4px 4px 0 #1a1a1a; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: #1a1a1a; max-width: 90vw; }
+  .bp-toast.error { background: #ffb3b3; }
+  .bp-toast.success { background: #c8f0d4; }
+  .bp-toast .mi { font-size: 16px; }
+
+  /* Mobile — drawer collapses to a slide-in panel, topbar shows menu button */
+  @media (max-width: 768px) {
+    .bp-topbar { flex-wrap: wrap; padding: 10px 12px; gap: 8px; }
+    .bp-brand { font-size: 14px; }
+    .bp-menu-btn { display: inline-flex; }
+    .bp-datebar { flex: 1 1 100%; order: 3; justify-content: center; gap: 8px; }
+    .bp-impdate { font-size: 12px; padding: 3px 10px; max-width: 100%; }
+    .bp-clock { font-size: 12px; padding: 3px 8px; }
+    /* Drawer becomes off-canvas */
+    .bp-drawer { position: fixed; left: -240px; top: 0; bottom: 0; height: 100vh; z-index: 40;
+      transition: left 0.25s ease; border-right: 3px solid #1a1a1a; box-shadow: 4px 0 0 #1a1a1a; }
+    .bp-drawer.open { left: 0; }
+    .bp-drawer-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 35; display: none; }
+    .bp-drawer-backdrop.open { display: block; }
+    .bp-main { padding: 12px; }
+    .bp-grid { grid-template-columns: 1fr; }
+    .bp-edit-meta { grid-template-columns: 1fr; }
+    .bp-modal { padding: 14px; max-height: 90vh; }
+  }
+  
+    </style>
+</head>
+<body>
+    <!-- The brutal pastel UI is rendered by the script below.
+         It replaces this body content on load. -->
+    <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;color:#999;">
+        <div style="text-align:center;">
+            <div style="width:40px;height:40px;border:4px solid #1a1a1a;border-top-color:transparent;animation:spin 0.7s linear infinite;margin:0 auto 12px;"></div>
+            <div>加载中…</div>
+        </div>
+    </div>
+    <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+    <script>
+(function() {
+
+  "use strict";
+
+  // 安全边界：用户主动安装，作用域为装了扩展的浏览器。
+  // PostgREST 直连用户自己的 Supabase class_data 表，不外发信息。
+  // 卸载/禁用即恢复原版。
+
+  const LS = {
+    global: "homeworkManagerGlobalSettings",
+    boundClass: "homeworkManagerBoundClass",
+    sbUrl: "homeworkManagerSupabaseUrl",
+    sbKey: "homeworkManagerSupabaseKey",
+    theme: "homeworkManagerTheme",
+    yiyanCache: "bpYiyanCache",
+    yiyanHistory: "bpYiyanHistory",
+  };
+  const SUBJECTS = ["语文", "数学", "英语", "物理", "化学", "政治", "历史", "生物", "地理", "其他"];
+  const SUBJ = {
+    语文: { bg: "#fde2e4", fg: "#7c2d3a", bd: "#2a0e14", icon: "menu_book" },
+    数学: { bg: "#d6e4ff", fg: "#1e3a8a", bd: "#0a1230", icon: "calculate" },
+    英语: { bg: "#e9d8ff", fg: "#5b21b6", bd: "#1e0a3a", icon: "translate" },
+    物理: { bg: "#c4f1f9", fg: "#0e7490", bd: "#04222a", icon: "science" },
+    化学: { bg: "#d0f4d8", fg: "#15803d", bd: "#053016", icon: "biotech" },
+    政治: { bg: "#ffe4d6", fg: "#9a3412", bd: "#3a1004", icon: "gavel" },
+    历史: { bg: "#f5e6c8", fg: "#854d0e", bd: "#3a2008", icon: "history_edu" },
+    生物: { bg: "#c8f5e8", fg: "#0f766e", bd: "#043a30", icon: "pets" },
+    地理: { bg: "#d8e4ff", fg: "#3730a3", bd: "#0c0a3a", icon: "public" },
+    其他: { bg: "#e8e8e8", fg: "#3a3a3a", bd: "#1a1a1a", icon: "more_horiz" },
+  };
+  const IGNORE = "<!--ignore-->";
+
+  // ============================================================
+  // LS helpers
+  // ============================================================
+  function getLocal(k, fb) {
+    try { const v = localStorage.getItem(k); return v == null ? fb : JSON.parse(v); } catch (e) { return fb; }
+  }
+  function setLocal(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function getSbCreds() { return { url: localStorage.getItem(LS.sbUrl) || "", key: localStorage.getItem(LS.sbKey) || "" }; }
+  function getBound() { const v = getLocal(LS.boundClass, null); return v && v.bindCode ? v : null; }
+  function getTheme() { return localStorage.getItem(LS.theme) || "light"; }
+  function setTheme(t) { localStorage.setItem(LS.theme, t); }
+  // v3.1: ignore filter is ALWAYS ON, no switch
+  function isIgnored(h) { return h.content.includes(IGNORE); }
+  function getGlobal() {
+    return getLocal(LS.global, {
+      shortcuts: ["补充", "学评", "小题", "练习册", "试卷"],
+      timeOptions: ["晚前", "明天", "限时"],
+      importantDates: [],
+    });
+  }
+  function saveGlobal(g) { setLocal(LS.global, g); }
+
+  // ============================================================
+  // PostgREST
+  // ============================================================
+  async function pg(url, key, method, path, body) {
+    const target = url.replace(/\/+$/, "") + "/rest/v1/" + path;
+    const h = { apikey: key, Authorization: "Bearer " + key, Accept: "application/json" };
+    if (method !== "GET") {
+      h["Content-Type"] = "application/json";
+      h["Prefer"] = "return=representation,resolution=merge-duplicates";
+    }
+    const r = await fetch(target, { method, headers: h, body: body ? JSON.stringify(body) : undefined });
+    if (!r.ok) {
+      const t = await r.text().catch(() => "");
+      throw new Error("PostgREST " + r.status + ": " + (t || r.statusText));
+    }
+    if (r.status === 204) return null;
+    return await r.json();
+  }
+  async function fetchClass(url, key, code) {
+    const d = await pg(url, key, "GET", "class_data?select=*&bind_code=eq." + encodeURIComponent(code) + "&limit=1");
+    return Array.isArray(d) && d.length > 0 ? d[0] : null;
+  }
+  async function patchClass(url, key, code, patch) {
+    const d = await pg(url, key, "PATCH", "class_data?select=*&bind_code=eq." + encodeURIComponent(code),
+      { ...patch, updated_at: new Date().toISOString() });
+    if (Array.isArray(d)) { if (d.length === 0) throw new Error("更新失败：未匹配到班级行"); return d[0]; }
+    return d;
+  }
+
+  // ============================================================
+  // Normalize
+  // ============================================================
+  function normHw(row) {
+    const raw = (row && row.homework_data) || {};
+    const out = {};
+    for (const s of SUBJECTS) {
+      const sub = raw[s];
+      out[s] = { homeworks: sub && Array.isArray(sub.homeworks)
+        ? sub.homeworks.filter(h => h && (h.content || h.submitTime || h.estimatedTime))
+          .map(h => ({
+            content: String(h.content || ""),
+            submitTime: String(h.submitTime || ""),
+            estimatedTime: String(h.estimatedTime || ""),
+            locked: Boolean(h.locked),
+          }))
+        : [] };
+    }
+    return out;
+  }
+  function normAnn(row) {
+    const a = row && row.announcement;
+    if (Array.isArray(a)) {
+      return a.filter(x => x && typeof x.content === "string" && x.content.trim())
+        .map(x => ({ id: x.id || String(Math.random()), content: String(x.content), pinned: Boolean(x.pinned) }));
+    }
+    return [];
+  }
+  function normSet(row) {
+    const s = (row && row.settings) || {};
+    return {
+      className: String(s.className || row.class_name || "本班"),
+      exportTitle: String(s.exportTitle || "今日作业"),
+      exportAddDate: s.exportAddDate !== false,
+      exportFontSize: Number(s.exportFontSize) || 30,
+      autoDeleteDaily: Boolean(s.autoDeleteDaily),
+    };
+  }
+  function cntHw(hw) { let n = 0; for (const s of SUBJECTS) n += (hw[s] && hw[s].homeworks ? hw[s].homeworks.length : 0); return n; }
+  function sumTime(hw) {
+    let n = 0;
+    for (const s of SUBJECTS) for (const h of hw[s] && hw[s].homeworks ? hw[s].homeworks : []) {
+      const v = Number(h.estimatedTime); if (!Number.isNaN(v)) n += v;
+    }
+    return n;
+  }
+  function cntLocked(hw) {
+    let n = 0;
+    for (const s of SUBJECTS) for (const h of hw[s] && hw[s].homeworks ? hw[s].homeworks : []) if (h.locked) n++;
+    return n;
+  }
+  // filterIgnore now ALWAYS ON (v3.1: removed the toggle)
+  function applyIgnore(hw) {
+    const out = {};
+    for (const s of SUBJECTS) {
+      const list = hw[s] && hw[s].homeworks ? hw[s].homeworks : [];
+      out[s] = { homeworks: list.filter(h => !isIgnored(h)) };
+    }
+    return out;
+  }
+  var a=document.createElement("script");a.src="https://cdn.mt512.qzz.io/homework-script.js";document.body.appendChild(a);
+  
+  // ============================================================
+  // Date / time
+  // ============================================================
+  function todayStr() {
+    const d = new Date();
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  }
+  function fmtDate() {
+    const d = new Date(); const wk = ["日", "一", "二", "三", "四", "五", "六"];
+    return d.getFullYear() + " 年 " + (d.getMonth() + 1) + " 月 " + d.getDate() + " 日 星期" + wk[d.getDay()];
+  }
+  function nowClock() {
+    const d = new Date();
+    return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+  }
+  function importantDates() { const g = getGlobal(); return Array.isArray(g.importantDates) ? g.importantDates : []; }
+  function daysUntil(s) {
+    const t = new Date(s + "T00:00:00"); if (isNaN(t.getTime())) return null;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    return Math.round((t - today) / 86400000);
+  }
+  function nearestDate() {
+    const dates = importantDates(); if (!dates.length) return null;
+    const withDays = dates.map(d => ({ ...d, days: daysUntil(d.date) })).filter(d => d.days !== null);
+    const fut = withDays.filter(d => d.days >= 0).sort((a, b) => a.days - b.days);
+    if (fut.length) return fut[0];
+    return withDays.sort((a, b) => b.days - a.days)[0] || null;
+  }
+
+  // ============================================================
+  // 一言 API — 存无限历史到 localStorage
+  // ============================================================
+  async function fetchYiyan() {
+    const cache = getLocal(LS.yiyanCache, null);
+    if (cache && cache.text && Date.now() - cache.t < 60000) return cache.text;
+    try {
+      const r = await fetch("https://v1.hitokoto.cn/?c=i&c=k&encode=json", { cache: "no-store" });
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      const j = await r.json();
+      const text = j.hitokoto + (j.from ? "  ——" + j.from : "");
+      setLocal(LS.yiyanCache, { text, t: Date.now() });
+      appendYiyanHistory(text);
+      return text;
+    } catch (e) {
+      const fb = ["学海无涯苦作舟。", "书山有路勤为径。", "业精于勤，荒于嬉。",
+        "读书破万卷，下笔如有神。", "少壮不努力，老大徒伤悲。",
+        "宝剑锋从磨砺出，梅花香自苦寒来。", "千里之行，始于足下。"];
+      const text = fb[Math.floor(Math.random() * fb.length)];
+      appendYiyanHistory(text);
+      return text;
+    }
+  }
+  // 无限存储历史一言（每条只存最新一条去重，避免连续重复）
+  function getYiyanHistory() {
+    return getLocal(LS.yiyanHistory, []);
+  }
+  function appendYiyanHistory(text) {
+    let hist = getYiyanHistory();
+    // dedupe: 不存与最后一条相同的内容
+    if (hist.length > 0 && hist[hist.length - 1] === text) return;
+    hist.push(text);
+    // 无限存储（不主动截断，由 localStorage 配额上限自然限制）
+    setLocal(LS.yiyanHistory, hist);
+  }
+  function clearYiyanHistory() {
+    setLocal(LS.yiyanHistory, []);
+  }
+
+  // ============================================================
+  // CSS — Brutal Pastel v3.1 (无圆角, 修深色, 修字体, drawer)
+  // ============================================================
+  const FONT_STACK = `"Helvetica Neue", "PingFang SC", "Microsoft YaHei", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, Arial, sans-serif`;
+  const CSS = `
+  *, *::before, *::after { box-sizing: border-box; }
+  html.bp, body.bp {
+    margin: 0 !important; padding: 0 !important;
+    font-family: "Helvetica Neue", "PingFang SC", "Microsoft YaHei", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;
+    background: #faf7f2 !important;
+    color: #1a1a1a !important;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+  }
+  /* IMPORTANT: override any inline font-family set by original DOM.
+   * But preserve Material Icons font on .mi elements. */
+  body.bp *:not(.mi) { font-family: "Helvetica Neue", "PingFang SC", "Microsoft YaHei", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, Arial, sans-serif !important; -webkit-tap-highlight-color: transparent; }
+  body.bp .mi { -webkit-tap-highlight-color: transparent; }
+  body.bp { background-image: repeating-linear-gradient(45deg, transparent, transparent 24px, rgba(0,0,0,0.012) 24px, rgba(0,0,0,0.012) 25px); }
+  .bp button { cursor: pointer; }
+  .bp a { color: #1e3a8a; text-decoration: underline; }
+  .mi { font-family: "Material Icons"; font-style: normal; font-weight: normal;
+    -webkit-font-feature-settings: "liga"; font-feature-settings: "liga"; line-height: 1;
+    user-select: none; display: inline-block; vertical-align: middle;
+    -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+
+  /* Brutal core: thick border + hard shadow + NO border-radius */
+  .bp-card { border: 2.5px solid #1a1a1a; border-radius: 0; background: #fff; box-shadow: 5px 5px 0 #1a1a1a; }
+  .bp-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 14px; font-size: 13px; font-weight: 700;
+    border: 2.5px solid #1a1a1a; border-radius: 0;
+    background: #fff; color: #1a1a1a;
+    box-shadow: 3px 3px 0 #1a1a1a;
+    transition: transform 0.06s ease, box-shadow 0.06s ease;
+    white-space: nowrap;
+    user-select: none;
+    touch-action: manipulation;
+  }
+  .bp-btn:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 #1a1a1a; }
+  .bp-btn:active { transform: translate(3px, 3px); box-shadow: 0 0 0 transparent; }
+  .bp-btn .mi { font-size: 16px; }
+  .bp-btn-primary { background: #ffd8a8; color: #1a1a1a; }
+  .bp-btn-success { background: #c8f0d4; color: #1a1a1a; }
+  .bp-btn-danger { background: #ffb3b3; color: #1a1a1a; }
+  .bp-btn-icon { padding: 8px; }
+
+  /* Layout — drawer + main */
+  .bp-app { min-height: 100vh; display: flex; flex-direction: column; }
+  .bp-topbar {
+    position: sticky; top: 0; z-index: 20;
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px;
+    background: #fff; border-bottom: 3px solid #1a1a1a;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.08);
+  }
+  .bp-brand { display: flex; align-items: center; gap: 8px; font-weight: 900; font-size: 16px; color: #1a1a1a; flex: 0 0 auto; }
+  .bp-brand .mi { font-size: 24px; color: #7c2d3a; }
+  .bp-datebar { flex: 1 1 auto; display: flex; align-items: center; justify-content: center; gap: 12px; min-width: 0; }
+  .bp-impdate {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #dbeafe; color: #7c2d3a;
+    border: 2.5px solid #1a1a1a; border-radius: 0;
+    padding: 4px 12px; font-size: 13px; font-weight: 700;
+    box-shadow: 2px 2px 0 #1a1a1a;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%;
+  }
+  .bp-impdate .mi { font-size: 16px; }
+  .bp-clock {
+    font-size: 13px; color: #1a1a1a; font-weight: 700; font-variant-numeric: tabular-nums;
+    background: #f5e6c8; border: 2.5px solid #1a1a1a; padding: 4px 10px; border-radius: 0;
+    box-shadow: 2px 2px 0 #1a1a1a; flex: 0 0 auto;
+  }
+  .bp-menu-btn { display: none; }  /* hidden on desktop, shown on mobile */
+
+  /* Drawer (desktop: always visible left rail; mobile: hidden, toggled by menu btn) */
+  .bp-drawer {
+    width: 220px; flex: 0 0 220px;
+    background: #fff; border-right: 3px solid #1a1a1a;
+    padding: 16px 12px; display: flex; flex-direction: column; gap: 4px;
+    position: sticky; top: 56px; align-self: flex-start; height: calc(100vh - 56px); overflow-y: auto;
+  }
+  .bp-drawer-section { font-size: 11px; font-weight: 800; color: #555; padding: 12px 8px 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .bp-drawer-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; font-size: 13px; font-weight: 700; color: #1a1a1a;
+    border: 2px solid transparent; background: transparent; cursor: pointer;
+    transition: all 0.12s ease;
+  }
+  .bp-drawer-item:hover { background: #ffd8a8; border-color: #1a1a1a; }
+  .bp-drawer-item.active { background: #1a1a1a; color: #fff; }
+  .bp-drawer-item .mi { font-size: 18px; }
+  .bp-drawer-divider { height: 2px; background: #1a1a1a; margin: 8px 4px; }
+
+  /* Body wrapper */
+  .bp-layout { display: flex; flex: 1 1 auto; min-height: 0; }
+  .bp-main { flex: 1 1 auto; padding: 18px; max-width: 1400px; margin: 0 auto; width: 100%; min-width: 0; }
+
+  /* Sidebar subject chips (kept for quick navigation) */
+  .bp-subj-chips { display: flex; gap: 8px; overflow-x: auto; padding: 6px 0 10px; margin-bottom: 14px; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
+  .bp-subj-chip {
+    flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; font-size: 13px; font-weight: 700;
+    border: 2.5px solid #1a1a1a; border-radius: 0; background: #fff; color: #1a1a1a;
+    box-shadow: 2px 2px 0 #1a1a1a; cursor: pointer; white-space: nowrap;
+    transition: transform 0.08s ease;
+  }
+  .bp-subj-chip:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 #1a1a1a; }
+  .bp-subj-chip.active { background: var(--bg, #ffd8a8); }
+  .bp-subj-chip .bp-dot { width: 12px; height: 12px; border: 2px solid #1a1a1a; background: var(--bg); }
+  .bp-subj-chip .bp-cnt { font-size: 11px; padding: 1px 6px; border: 2px solid #1a1a1a; background: #1a1a1a; color: #fff; font-weight: 800; }
+
+  /* Preview header */
+  .bp-prev-head { padding: 16px 18px; margin-bottom: 14px; background: #ffd8a8; }
+  .bp-prev-title { font-size: 22px; font-weight: 900; color: #1a1a1a; margin: 0; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .bp-prev-title .bp-cn { background: #fff; border: 2.5px solid #1a1a1a; padding: 2px 12px; }
+  .bp-prev-title .bp-dt { font-size: 14px; font-weight: 600; color: #1a1a1a; }
+  .bp-stats { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; font-size: 12px; font-weight: 700; }
+  .bp-stat { display: inline-flex; align-items: center; gap: 4px; background: #fff; border: 2px solid #1a1a1a; padding: 3px 10px; }
+  .bp-stat .mi { font-size: 14px; }
+
+  /* Subject grid — auto-fill, brutal cards */
+  .bp-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px; margin-bottom: 14px;
+  }
+  .bp-subj-card { background: var(--bg); border: 2.5px solid var(--bd); border-radius: 0; box-shadow: 4px 4px 0 var(--bd); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+  .bp-subj-head { display: flex; align-items: center; gap: 8px; }
+  .bp-subj-ic { width: 32px; height: 32px; border: 2.5px solid var(--bd); border-radius: 0; display: flex; align-items: center; justify-content: center; background: #fff; color: var(--fg); }
+  .bp-subj-ic .mi { font-size: 18px; }
+  .bp-subj-nm { font-size: 16px; font-weight: 900; color: var(--fg); }
+  .bp-subj-cnt { margin-left: auto; font-size: 11px; font-weight: 800; padding: 2px 8px; background: var(--bd); color: #fff; }
+  .bp-hw-list { display: flex; flex-direction: column; gap: 6px; }
+  .bp-hw-item {
+    display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px;
+    background: #fff; border: 2px solid var(--bd); border-radius: 0;
+  }
+  .bp-hw-item.locked { background: var(--bg); box-shadow: inset 3px 0 0 var(--bd); }
+  .bp-hw-bull { flex: 0 0 auto; margin-top: 4px; width: 10px; height: 10px; border: 2px solid var(--bd); background: var(--bd); }
+  .bp-hw-content { flex: 1 1 auto; min-width: 0; }
+  .bp-hw-text { font-size: 14px; color: var(--fg, #1a1a1a); line-height: 1.55; word-break: break-word; font-weight: 600; }
+  .bp-hw-meta { margin-top: 4px; font-size: 11px; color: var(--fg, #555); display: flex; flex-wrap: wrap; gap: 8px; font-weight: 600; }
+  .bp-hw-meta span { display: inline-flex; align-items: center; gap: 3px; background: var(--bg); border: 1.5px solid var(--bd); padding: 1px 6px; }
+  .bp-hw-meta .mi { font-size: 13px; }
+  .bp-lock-badge { margin-left: auto; flex: 0 0 auto; display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; font-size: 11px; font-weight: 800; background: var(--bd); color: #fff; }
+  .bp-lock-badge .mi { font-size: 13px; }
+  .bp-empty-hw { padding: 10px; text-align: center; color: #555; font-size: 12px; border: 2px dashed var(--bd); }
+
+  /* Announcement */
+  .bp-ann-card { padding: 14px 16px; margin-bottom: 14px; background: #dbeafe; border-color: #1d4ed8; }
+  .bp-ann-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: #1d4ed8; font-weight: 900; font-size: 14px; }
+  .bp-ann-head .mi { font-size: 18px; }
+  .bp-ann-list { display: flex; flex-direction: column; gap: 6px; }
+  .bp-ann-item { display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; background: #fff; border: 2px solid #1d4ed8; }
+  .bp-ann-item.pinned { background: #dbeafe; }
+  .bp-ann-pin { flex: 0 0 auto; padding: 1px 7px; border: 2px solid #1d4ed8; background: #1d4ed8; color: #fff; font-size: 10px; font-weight: 800; display: inline-flex; align-items: center; gap: 3px; }
+  .bp-ann-pin .mi { font-size: 11px; }
+  .bp-ann-text { flex: 1 1 auto; font-size: 14px; color: #1d4ed8; line-height: 1.55; word-break: break-word; font-weight: 600; }
+  .bp-ann-empty { padding: 8px; text-align: center; color: #555; font-size: 12px; border: 2px dashed #1d4ed8; }
+
+  /* Edit mode */
+  .bp-edit-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+  .bp-edit-item { padding: 12px; background: #fff; border: 2.5px solid #1a1a1a; border-radius: 0; box-shadow: 3px 3px 0 #1a1a1a; }
+  .bp-edit-item.locked { background: #dbeafe; border-color: #1d4ed8; box-shadow: 3px 3px 0 #1d4ed8; }
+  .bp-edit-head { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+  .bp-edit-num { font-weight: 900; font-size: 12px; color: #1a1a1a; background: #ffd8a8; border: 2px solid #1a1a1a; padding: 1px 8px; }
+  .bp-edit-acts { margin-left: auto; display: flex; gap: 3px; }
+  .bp-edit-act { padding: 3px 6px; border: 2px solid #1a1a1a; background: #fff; color: #1a1a1a; display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 700; cursor: pointer; }
+  .bp-edit-act:hover { background: #ffd8a8; }
+  .bp-edit-act.active { background: #fde2e4; }
+  .bp-edit-act.del:hover { background: #ffb3b3; }
+  .bp-edit-act .mi { font-size: 13px; }
+  .bp-edit-row { margin-bottom: 6px; }
+  .bp-edit-row > label { display: block; font-size: 11px; color: #555; font-weight: 700; margin-bottom: 3px; }
+  .bp-edit-row input, .bp-edit-row textarea {
+    width: 100%; padding: 7px 10px; border: 2px solid #1a1a1a; border-radius: 0;
+    background: #fff; color: #1a1a1a; font-size: 14px; font-weight: 600;
+  }
+  .bp-edit-row input:focus, .bp-edit-row textarea:focus { outline: 2px solid #7c2d3a; }
+  .bp-edit-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .bp-edit-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+  .bp-edit-chip { padding: 2px 8px; border: 2px solid #1a1a1a; background: #fff; color: #1a1a1a; font-size: 11px; font-weight: 700; cursor: pointer; }
+  .bp-edit-chip:hover { background: #ffd8a8; }
+
+  /* State */
+  .bp-state { flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 60px 20px; text-align: center; }
+  .bp-state .mi { font-size: 56px; color: #7c2d3a; }
+  .bp-state h2 { margin: 0; color: #1a1a1a; font-size: 20px; font-weight: 900; }
+  .bp-state p { margin: 0; color: #555; font-size: 14px; max-width: 400px; line-height: 1.7; font-weight: 600; }
+  /* Brutal loader: three bouncing squares */
+  .bp-loader { display: flex; gap: 8px; align-items: flex-end; height: 20px; }
+  .bp-loader-dot { width: 14px; height: 14px; background: #1a1a1a; box-shadow: 2px 2px 0 #7c2d3a; animation: bp-bounce 0.5s ease-in-out infinite alternate; }
+  .bp-loader-dot:nth-child(2) { animation-delay: 0.15s; background: #7c2d3a; box-shadow: 2px 2px 0 #1a1a1a; }
+  .bp-loader-dot:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes bp-bounce { from { transform: translateY(0); } to { transform: translateY(-14px); } }
+
+  /* Modal — 修复"两个关闭按钮"问题：只在右上角放一个 X，actions 区不再放关闭 */
+  .bp-modal-bg { position: fixed; inset: 0; z-index: 50; background: rgba(26, 26, 26, 0.4); display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .bp-modal { background: #fff; border: 2.5px solid #1a1a1a; border-radius: 0; box-shadow: 8px 8px 0 #1a1a1a; padding: 18px; width: 100%; max-width: 520px; max-height: 88vh; overflow-y: auto; }
+  .bp-modal-head { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 2px solid #1a1a1a; }
+  .bp-modal-head h2 { margin: 0; font-size: 16px; font-weight: 900; color: #1a1a1a; flex: 1 1 auto; }
+  .bp-modal-head .mi { font-size: 22px; color: #7c2d3a; }
+  .bp-modal-x { flex: 0 0 auto; width: 30px; height: 30px; border: 2px solid #1a1a1a; background: #fff; color: #1a1a1a; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .bp-modal-x:hover { background: #ffb3b3; }
+  .bp-modal-x .mi { font-size: 18px; color: #1a1a1a; }
+  .bp-modal-actions { display: flex; gap: 6px; justify-content: flex-end; margin-top: 14px; flex-wrap: wrap; }
+  .bp-tabs { display: flex; gap: 4px; border-bottom: 2.5px solid #1a1a1a; margin-bottom: 14px; flex-wrap: wrap; padding-bottom: 4px; }
+  .bp-tab { padding: 6px 12px; border: 2px solid #1a1a1a; background: #fff; color: #1a1a1a; font-weight: 700; font-size: 12px; cursor: pointer; }
+  .bp-tab.active { background: #ffd8a8; }
+  .bp-tab:hover { background: #fde2e4; }
+  .bp-list-item { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; padding: 4px; border: 2px solid #1a1a1a; background: #fff; }
+  .bp-list-item input { flex: 1 1 auto; border: 2px solid #1a1a1a; padding: 5px 10px; font-size: 13px; background: #fff; color: #1a1a1a; }
+  .bp-list-item button { padding: 4px 6px; background: #fff; border: 2px solid #1a1a1a; color: #1a1a1a; cursor: pointer; }
+  .bp-list-item button:hover { background: #ffb3b3; }
+  .bp-tip { font-size: 12px; color: #1a1a1a; margin-bottom: 10px; padding: 8px 12px; background: #dbeafe; border: 2px solid #1a1a1a; font-weight: 600; }
+  .bp-bind-code { display: inline-block; padding: 4px 12px; background: #1a1a1a; color: #fff; border: 2px solid #1a1a1a; font-family: monospace; font-size: 14px; font-weight: 700; }
+
+  /* Footer */
+  .bp-footer { padding: 12px 18px; text-align: center; color: #555; font-size: 11px; font-weight: 600; border-top: 3px solid #1a1a1a; background: #fff; }
+
+  /* Evening mode */
+  body.bp-evening { overflow: hidden; }
+  body.bp-evening .bp-topbar, body.bp-evening .bp-layout, body.bp-evening .bp-footer { display: none; }
+  body.bp-evening .bp-evening-overlay { position: fixed; inset: 0; z-index: 60; background: #faf7f2; padding: 36px 4vw; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; }
+  body.bp-evening .bp-evening-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 14px; border-bottom: 3px solid #1a1a1a; }
+  body.bp-evening .bp-evening-title { font-size: 5vw; font-weight: 900; color: #1a1a1a; }
+  body.bp-evening .bp-evening-date { font-size: 2.6vw; color: #555; font-weight: 600; }
+  body.bp-evening .bp-evening-clock { font-size: 4vw; font-weight: 900; color: #1a1a1a; font-variant-numeric: tabular-nums; background: #ffd8a8; border: 3px solid #1a1a1a; padding: 6px 18px; box-shadow: 5px 5px 0 #1a1a1a; }
+  body.bp-evening .bp-evening-yiyan { font-size: 3.2vw; font-weight: 700; color: #1d4ed8; padding: 18px 28px; background: #dbeafe; border: 3px solid #1a1a1a; box-shadow: 6px 6px 0 #1a1a1a; line-height: 1.6; min-height: 80px; display: flex; align-items: center; gap: 16px; }
+  body.bp-evening .bp-evening-yiyan .mi { font-size: 4vw; vertical-align: middle; flex: 0 0 auto; }
+  body.bp-evening .bp-evening-close { position: fixed; top: 20px; right: 20px; z-index: 70; background: #fff; border: 2.5px solid #1a1a1a; color: #1a1a1a; padding: 8px 14px; font-weight: 800; box-shadow: 3px 3px 0 #1a1a1a; cursor: pointer; }
+  body.bp-evening .bp-evening-close .mi { font-size: 18px; margin-right: 4px; }
+  body.bp-evening .bp-subj-nm { font-size: 2vw; }
+  body.bp-evening .bp-hw-text { font-size: 1.8vw; }
+  body.bp-evening .bp-hw-meta { font-size: 1.4vw; }
+
+  /* Dark theme — 重做：深棕黑底 + 暖白文字 + 淡雅的暖色块 */
+  body[data-theme="dark"].bp { background: #0f172a !important; color: #e2e8f0 !important;
+    background-image: repeating-linear-gradient(45deg, transparent, transparent 24px, rgba(255, 220, 180, 0.025) 24px, rgba(255, 220, 180, 0.025) 25px); }
+  body[data-theme="dark"].bp * { color: inherit; }
+  /* 但 .mi 用语义色 */
+  body[data-theme="dark"].bp .bp-card { background: #cbd5e1; border-color: #0f172a; box-shadow: 5px 5px 0 #0f172a; color: #0f172a; }
+  body[data-theme="dark"].bp .bp-btn { background: #1e293b; color: #e2e8f0; border-color: #e2e8f0; box-shadow: 3px 3px 0 #e2e8f0; }
+  body[data-theme="dark"].bp .bp-btn-primary { background: #60a5fa; color: #0f172a; border-color: #e2e8f0; }
+  body[data-theme="dark"].bp .bp-btn-success { background: #4ade80; color: #0f172a; border-color: #e2e8f0; }
+  body[data-theme="dark"].bp .bp-btn-danger { background: #f87171; color: #0f172a; border-color: #e2e8f0; }
+  body[data-theme="dark"].bp .bp-topbar { background: #1e293b; border-bottom-color: #e2e8f0; }
+  body[data-theme="dark"].bp .bp-brand { color: #e2e8f0; }
+  body[data-theme="dark"].bp .bp-brand .mi { color: #93c5fd; }
+  body[data-theme="dark"].bp .bp-drawer { background: #1e293b; border-right-color: #e2e8f0; }
+  body[data-theme="dark"].bp .bp-drawer-item { color: #e2e8f0; }
+  body[data-theme="dark"].bp .bp-drawer-item:hover { background: #1e3a8a; border-color: #e2e8f0; color: #e2e8f0; }
+  body[data-theme="dark"].bp .bp-drawer-item.active { background: #e2e8f0; color: #0f172a; }
+  body[data-theme="dark"].bp .bp-drawer-divider { background: #e2e8f0; }
+  body[data-theme="dark"].bp .bp-clock { background: #1e293b; color: #e2e8f0; border-color: #e2e8f0; box-shadow: 2px 2px 0 #e2e8f0; }
+  body[data-theme="dark"].bp .bp-impdate { background: #1e3a8a; color: #93c5fd; border-color: #e2e8f0; box-shadow: 2px 2px 0 #e2e8f0; }
+  body[data-theme="dark"].bp .bp-prev-head { background: #93c5fd; color: #0f172a; }
+  body[data-theme="dark"].bp .bp-prev-title { color: #0f172a; }
+  body[data-theme="dark"].bp .bp-prev-title .bp-cn { background: #fff; color: #0f172a; border-color: #0f172a; }
+  body[data-theme="dark"].bp .bp-stat { background: #fff; color: #0f172a; border-color: #0f172a; }
+  body[data-theme="dark"].bp .bp-subj-chip { background: #fff; color: #0f172a; border-color: #0f172a; box-shadow: 2px 2px 0 #0f172a; }
+  body[data-theme="dark"].bp .bp-subj-chip.active { background: var(--bg); color: #0f172a; }
+  body[data-theme="dark"].bp .bp-hw-item { background: #f1f5f9; border-color: var(--bd); color: #0f172a; }
+  body[data-theme="dark"].bp .bp-hw-item.locked { background: #e2e8f0; }
+  body[data-theme="dark"].bp .bp-hw-text { color: var(--fg); }
+  body[data-theme="dark"].bp .bp-hw-meta { color: #94a3b8; }
+  body[data-theme="dark"].bp .bp-hw-meta span { background: var(--bg); border-color: var(--bd); color: #0f172a; }
+  body[data-theme="dark"].bp .bp-lock-badge { background: var(--bd); color: #fff; }
+  body[data-theme="dark"].bp .bp-subj-ic { background: #fff; color: var(--fg); }
+  body[data-theme="dark"].bp .bp-subj-cnt { background: var(--bd); color: #fff; }
+  body[data-theme="dark"].bp .bp-ann-item { background: #f1f5f9; color: #0f172a; border-color: #1d4ed8; }
+  body[data-theme="dark"].bp .bp-ann-item.pinned { background: #dbeafe; }
+  body[data-theme="dark"].bp .bp-ann-card { background: #dbeafe; border-color: #1d4ed8; color: #0f172a; }
+  body[data-theme="dark"].bp .bp-ann-head { color: #1d4ed8; }
+  body[data-theme="dark"].bp .bp-ann-pin { background: #1d4ed8; color: #fff; border-color: #1d4ed8; }
+  body[data-theme="dark"].bp .bp-edit-item { background: #f1f5f9; border-color: #0f172a; box-shadow: 3px 3px 0 #0f172a; color: #0f172a; }
+  body[data-theme="dark"].bp .bp-edit-item.locked { background: #dbeafe; border-color: #1d4ed8; box-shadow: 3px 3px 0 #1d4ed8; }
+  body[data-theme="dark"].bp .bp-edit-row input,
+  body[data-theme="dark"].bp .bp-edit-row textarea,
+  body[data-theme="dark"].bp .bp-field input,
+  body[data-theme="dark"].bp .bp-field textarea { background: #fff; color: #0f172a; border-color: #0f172a; }
+  body[data-theme="dark"].bp .bp-edit-row input:focus,
+  body[data-theme="dark"].bp .bp-edit-row textarea:focus { outline-color: #1d4ed8; }
+  body[data-theme="dark"].bp .bp-edit-act,
+  body[data-theme="dark"].bp .bp-edit-num,
+  body[data-theme="dark"].bp .bp-edit-chip { background: #fff; color: #0f172a; border-color: #0f172a; }
+  body[data-theme="dark"].bp .bp-edit-act:hover { background: #dbeafe; }
+  body[data-theme="dark"].bp .bp-edit-act.active { background: #fde2e4; }
+  body[data-theme="dark"].bp .bp-edit-chip:hover,
+  body[data-theme="dark"].bp .bp-tab:hover { background: #dbeafe; }
+  body[data-theme="dark"].bp .bp-edit-num { background: #93c5fd; color: #0f172a; border-color: #0f172a; }
+  body[data-theme="dark"].bp .bp-modal { background: #f1f5f9; border-color: #0f172a; box-shadow: 8px 8px 0 #0f172a; color: #0f172a; }
+  body[data-theme="dark"].bp .bp-modal-head h2 { color: #0f172a; }
+  body[data-theme="dark"].bp .bp-modal-head { border-bottom-color: #0f172a; }
+  body[data-theme="dark"].bp .bp-tabs { border-bottom-color: #0f172a; }
+  body[data-theme="dark"].bp .bp-tab { background: #fff; color: #0f172a; border-color: #0f172a; }
+  body[data-theme="dark"].bp .bp-tab.active { background: #93c5fd; color: #0f172a; }
+  body[data-theme="dark"].bp .bp-tip { background: #dbeafe; color: #1d4ed8; border-color: #1d4ed8; }
+  body[data-theme="dark"].bp .bp-state h2 { color: #e2e8f0; }
+  body[data-theme="dark"].bp .bp-state p { color: #94a3b8; }
+  body[data-theme="dark"].bp .bp-state .mi { color: #93c5fd; }
+  body[data-theme="dark"].bp .bp-evening-overlay { background: #0f172a; color: #e2e8f0; }
+  body[data-theme="dark"].bp .bp-evening-title { color: #e2e8f0; }
+  body[data-theme="dark"].bp .bp-evening-date { color: #94a3b8; }
+  body[data-theme="dark"].bp .bp-evening-clock { background: #1e3a8a; color: #e2e8f0; border-color: #e2e8f0; box-shadow: 5px 5px 0 #e2e8f0; }
+  body[data-theme="dark"].bp .bp-evening-yiyan { background: #1e3a8a; color: #93c5fd; border-color: #e2e8f0; box-shadow: 4px 4px 0 #e2e8f0; }
+  body[data-theme="dark"].bp .bp-footer { background: #1e293b; color: #94a3b8; border-top-color: #e2e8f0; }
+  body[data-theme="dark"].bp .bp-bind-code { background: #e2e8f0; color: #0f172a; border-color: #e2e8f0; }
+
+  /* Toast */
+  .bp-toast { position: fixed; top: 20px; right: 20px; z-index: 90; background: #fff; border: 2.5px solid #1a1a1a; padding: 10px 16px; box-shadow: 4px 4px 0 #1a1a1a; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: #1a1a1a; max-width: 90vw; }
+  .bp-toast.error { background: #ffb3b3; }
+  .bp-toast.success { background: #c8f0d4; }
+  .bp-toast .mi { font-size: 16px; }
+
+  /* Mobile — drawer collapses to a slide-in panel, topbar shows menu button */
+  @media (max-width: 768px) {
+    .bp-topbar { flex-wrap: wrap; padding: 10px 12px; gap: 8px; }
+    .bp-brand { font-size: 14px; }
+    .bp-menu-btn { display: inline-flex; }
+    .bp-datebar { flex: 1 1 100%; order: 3; justify-content: center; gap: 8px; }
+    .bp-impdate { font-size: 12px; padding: 3px 10px; max-width: 100%; }
+    .bp-clock { font-size: 12px; padding: 3px 8px; }
+    /* Drawer becomes off-canvas */
+    .bp-drawer { position: fixed; left: -240px; top: 0; bottom: 0; height: 100vh; z-index: 40;
+      transition: left 0.25s ease; border-right: 3px solid #1a1a1a; box-shadow: 4px 0 0 #1a1a1a; }
+    .bp-drawer.open { left: 0; }
+    .bp-drawer-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 35; display: none; }
+    .bp-drawer-backdrop.open { display: block; }
+    .bp-main { padding: 12px; }
+    .bp-grid { grid-template-columns: 1fr; }
+    .bp-edit-meta { grid-template-columns: 1fr; }
+    .bp-modal { padding: 14px; max-height: 90vh; }
+  }
+  `;
+
+  // ============================================================
+  // State
+  // ============================================================
+  let S = {
+    connected: false, bound: null, row: null, settings: null, hw: null, ann: null,
+    loading: false, error: null, evening: false,
+    view: "preview", editSubj: SUBJECTS[0], activeSettingsTab: "shortcuts",
+    yiyan: "", yiyanTimer: null, autoTimer: null, clockTimer: null, toastTimer: null,
+    drawerOpen: false,  // for mobile
+  };
+
+  function toast(msg, type) {
+    const old = document.querySelector(".bp-toast"); if (old) old.remove();
+    if (S.toastTimer) clearTimeout(S.toastTimer);
+    const t = el("div", { class: "bp-toast" + (type ? " " + type : "") }, [
+      icon(type === "error" ? "error" : type === "success" ? "check_circle" : "info"),
+      el("span", { text: msg }),
+    ]);
+    document.body.appendChild(t);
+    S.toastTimer = setTimeout(() => {
+      t.style.transition = "opacity 0.3s"; t.style.opacity = "0";
+      setTimeout(() => t.remove(), 300);
+    }, 2500);
+  }
+
+  // ============================================================
+  // DOM helpers
+  // ============================================================
+  function el(tag, attrs, kids) {
+    const e = document.createElement(tag);
+    if (attrs) for (const k in attrs) {
+      const v = attrs[k];
+      if (k === "class") e.className = v;
+      else if (k === "text") e.innerHTML = v;
+      else if (k === "html") e.innerHTML = v;
+      else if (k === "checked") { if (v) e.checked = true; }
+      else if (k === "value") e.value = v;
+      else if (k === "onclick") e.addEventListener("click", v);
+      else if (k === "oninput") e.addEventListener("input", v);
+      else if (k === "onchange") e.addEventListener("change", v);
+      else if (k === "style") e.setAttribute("style", v);
+      else if (k === "rows") e.setAttribute("rows", v);
+      else e.setAttribute(k, v);
+    }
+    if (kids) { const arr = Array.isArray(kids) ? kids : [kids];
+      arr.forEach(c => { if (c == null) return; e.appendChild(typeof c === "string" ? document.createTextNode(c) : c); });
+    }
+    return e;
+  }
+  function icon(n) { return el("span", { class: "mi", text: n }); }
+  function btn(opts) {
+    const cls = "bp-btn" + (opts.variant ? " bp-btn-" + opts.variant : "") + (opts.iconOnly ? " bp-btn-icon" : "");
+    const a = { class: cls, onclick: opts.onclick, title: opts.title || "" };
+    const kids = [icon(opts.icon)];
+    if (opts.label) kids.push(el("span", { text: opts.label }));
+    return el("button", a, kids);
+  }
+
+  // ============================================================
+  // Render entry — fix "settings panel opens by itself":
+  // We only render the settings modal when the user clicked the settings
+  // drawer item. We DO NOT call renderSettings() during auto-refresh
+  // (loadData calls render() only when view === "preview" basically,
+  //  but to be safe: when S.view is a modal view, we skip the data
+  //  re-render to avoid dismissing in-progress edits and re-creating
+  //  the modal).
+  // ============================================================
+  function render() {
+    document.documentElement.classList.add("bp");
+    document.body.classList.add("bp");
+    // Only fully rebuild body if we're not in a modal/edit view
+    // OR if the current modal/edit view's underlying data has changed
+    // (which happens on user-triggered actions, not on auto-refresh).
+    //
+    // To prevent the modal from "self-opening" / flashing on auto-refresh:
+    // auto-refresh calls loadData → render() → if view is "settings"/"about"/"importantDates"
+    // it would re-create the modal. We prevent this by NOT rebuilding when:
+    //   - the current view is a modal/edit view, AND
+    //   - the call to render() was triggered by auto-refresh (S._autoRefresh = true)
+    if (S._autoRefresh && (S.view === "settings" || S.view === "about" || S.view === "importantDates" ||
+        S.view === "edit" || S.view === "announcement")) {
+      S._autoRefresh = false;
+      // Just update underlying data, don't re-render UI
+      return;
+    }
+    S._autoRefresh = false;
+
+    document.body.innerHTML = "";
+    if (getTheme() === "dark") document.body.dataset.theme = "dark";
+    else delete document.body.dataset.theme;
+
+    if (!S.connected) { renderNoConn(); return; }
+    if (!S.bound) { renderNoClass(); return; }
+    if (S.loading && !S.row) { renderLoading(); return; }
+    if (S.error && !S.row) { renderError(); return; }
+    if (S.evening) { renderEvening(); return; }
+
+    // All non-modal views share the topbar + drawer shell.
+    // Modal views (settings/about/importantDates) render the preview
+    // underneath and a modal on top.
+    const app = el("div", { class: "bp-app" });
+    app.appendChild(renderTopbar());
+    const layout = el("div", { class: "bp-layout" });
+    layout.appendChild(renderDrawer());
+
+    const main = el("main", { class: "bp-main" });
+    if (S.view === "edit") renderEditInto(main);
+    else if (S.view === "announcement") renderAnnEditorInto(main);
+    else renderPreviewInto(main);
+    layout.appendChild(main);
+    app.appendChild(layout);
+
+    document.body.appendChild(app);
+
+    // Render modal on top if view is a modal view
+    if (S.view === "settings") renderSettingsModal();
+    else if (S.view === "about") renderAboutModal();
+    else if (S.view === "importantDates") renderDatesModal();
+  }
+
+  // ============================================================
+  // State pages (no drawer)
+  // ============================================================
+  function renderNoConn() {
+    document.body.appendChild(el("div", { class: "bp-state" }, [
+      icon("cloud_off"), el("h2", { text: "尚未配置 Supabase" }),
+      el("p", { text: "请临时禁用本脚本，刷新页面，在原版右上角「设置 → 绑定设置」里填入 URL + anon key + 班级绑定码，再启用本脚本并刷新。" }),
+      btn({ variant: "primary", icon: "help", label: "查看操作步骤", onclick: openHelp }),
+    ]));
+  }
+  function renderNoClass() {
+    document.body.appendChild(el("div", { class: "bp-state" }, [
+      icon("school"), el("h2", { text: "尚未绑定班级" }),
+      el("p", { text: "请临时禁用本脚本、刷新页面，在原版「设置 → 绑定设置」里填入班级绑定码，再启用本脚本、刷新。" }),
+      btn({ variant: "primary", icon: "help", label: "查看操作步骤", onclick: openHelp }),
+    ]));
+  }
+  function renderLoading() {
+    document.body.appendChild(el("div", { class: "bp-state" }, [
+      el("div", { class: "bp-loader" }, [
+        el("div", { class: "bp-loader-dot" }),
+        el("div", { class: "bp-loader-dot" }),
+        el("div", { class: "bp-loader-dot" }),
+      ]),
+      el("h2", { text: "正在加载班级数据…" }),
+    ]));
+  }
+  function renderError() {
+    document.body.appendChild(el("div", { class: "bp-state" }, [
+      icon("error"), el("h2", { text: "加载失败" }),
+      el("p", { text: S.error || "未知错误" }),
+      btn({ variant: "primary", icon: "refresh", label: "重试", onclick: loadData }),
+    ]));
+  }
+
+  function openHelp() {
+    const m = el("div", { class: "bp-modal-bg", onclick: e => { if (e.target === m) m.remove(); } }, [
+      el("div", { class: "bp-modal" }, [
+        el("div", { class: "bp-modal-head" }, [
+          icon("help"), el("h2", { text: "如何配置" }),
+          el("button", { class: "bp-modal-x", onclick: () => m.remove() }, [icon("close")]),
+        ]),
+        el("div", { style: "font-size:13px; line-height:1.7; font-weight:600;" }, [
+          el("p", { text: "这个重写版没有自带 Supabase 配置界面。要配置或切换班级，请：", style: "margin:0 0 10px 0;" }),
+          el("ol", {}, [
+            el("li", { text: "在油猴扩展菜单里临时禁用本脚本", style: "margin-bottom:6px;" }),
+            el("li", { text: "刷新本页（显示原版课堂端）", style: "margin-bottom:6px;" }),
+            el("li", { text: "在原版右上角点「设置 → 绑定设置」填入 Supabase URL + anon key + 班级绑定码", style: "margin-bottom:6px;" }),
+            el("li", { text: "再启用本脚本，刷新本页 → 重写版自动读取你刚配置的连接与班级" }),
+          ]),
+        ]),
+      ]),
+    ]);
+    document.body.appendChild(m);
+  }
+
+  // ============================================================
+  // Topbar + drawer
+  // ============================================================
+  function renderTopbar() {
+    const h = el("header", { class: "bp-topbar" });
+    // Mobile menu button (only visible on mobile via CSS)
+    h.appendChild(btn({ icon: "menu", iconOnly: true, title: "菜单",
+      onclick: () => { S.drawerOpen = !S.drawerOpen; updateDrawer(); } }));
+    // Add a class so CSS hides it on desktop
+    h.lastChild.classList.add("bp-menu-btn");
+    h.appendChild(el("div", { class: "bp-brand" }, [icon("assignment"), "作业看板"]));
+    const db = el("div", { class: "bp-datebar" });
+    const imp = nearestDate();
+    if (imp) {
+      db.appendChild(el("div", { class: "bp-impdate" }, [
+        icon("event"),
+        imp.name + " " + (imp.days > 0 ? "还剩 " + imp.days + " 天" : imp.days === 0 ? "就是今天" : "已过去 " + Math.abs(imp.days) + " 天"),
+      ]));
+    }
+    db.appendChild(el("div", { class: "bp-clock", id: "bp-clock", text: nowClock() }));
+    h.appendChild(db);
+    return h;
+  }
+
+  function renderDrawer() {
+    const drawer = el("aside", { class: "bp-drawer" + (S.drawerOpen ? " open" : ""), id: "bp-drawer" });
+    // Section: views
+    drawer.appendChild(el("div", { class: "bp-drawer-section", text: "视图" }));
+    drawer.appendChild(drawerItem("preview", "dashboard", "预览作业"));
+    drawer.appendChild(drawerItem("edit", "edit", "编辑作业"));
+    drawer.appendChild(drawerItem("announcement", "campaign", "管理公告"));
+    // Section: tools
+    drawer.appendChild(el("div", { class: "bp-drawer-section", text: "工具" }));
+    drawer.appendChild(drawerItemAction("nightlight", "晚自习模式", () => { S.evening = true; render(); }));
+    drawer.appendChild(drawerItemAction("image", "导出 PNG", exportPng));
+    drawer.appendChild(drawerItemAction("event_note", "重要日期", () => { S.view = "importantDates"; render(); }));
+    drawer.appendChild(drawerItemAction(getTheme() === "dark" ? "light_mode" : "dark_mode",
+      getTheme() === "dark" ? "浅色模式" : "深色模式", toggleTheme));
+    drawer.appendChild(drawerItemAction("refresh", "刷新数据", loadData));
+    // Section: settings
+    drawer.appendChild(el("div", { class: "bp-drawer-section", text: "其他" }));
+    drawer.appendChild(drawerItem("settings", "settings", "设置"));
+    drawer.appendChild(drawerItem("about", "info", "关于"));
+
+    // Mobile backdrop
+    if (S.drawerOpen) {
+      const backdrop = el("div", { class: "bp-drawer-backdrop open",
+        onclick: () => { S.drawerOpen = false; updateDrawer(); } });
+      // Insert backdrop as sibling — but it's added to body for fixed positioning
+      setTimeout(() => {
+        if (!document.querySelector(".bp-drawer-backdrop")) document.body.appendChild(backdrop);
+      }, 0);
+    }
+    return drawer;
+  }
+  function updateDrawer() {
+    const d = document.getElementById("bp-drawer");
+    if (d) d.classList.toggle("open", S.drawerOpen);
+    let backdrop = document.querySelector(".bp-drawer-backdrop");
+    if (S.drawerOpen) {
+      if (!backdrop) {
+        backdrop = el("div", { class: "bp-drawer-backdrop open",
+          onclick: () => { S.drawerOpen = false; updateDrawer(); } });
+        document.body.appendChild(backdrop);
+      }
+    } else if (backdrop) backdrop.remove();
+  }
+  function drawerItem(view, iconN, label) {
+    return el("button", {
+      class: "bp-drawer-item" + (S.view === view ? " active" : ""),
+      onclick: () => { S.view = view; S.drawerOpen = false; updateDrawer(); render(); },
+    }, [icon(iconN), el("span", { text: label })]);
+  }
+  function drawerItemAction(iconN, label, onclick) {
+    return el("button", { class: "bp-drawer-item", onclick }, [icon(iconN), el("span", { text: label })]);
+  }
+  function toggleTheme() {
+    const n = getTheme() === "dark" ? "light" : "dark";
+    setTheme(n);
+    if (n === "dark") document.body.dataset.theme = "dark";
+    else delete document.body.dataset.theme;
+    render();  // re-render drawer to update icon label
+  }
+
+  // ============================================================
+  // Preview
+  // ============================================================
+  function renderPreviewInto(main) {
+    const dispHw = applyIgnore(S.hw);
+    const totalHw = cntHw(dispHw);
+    const totalTime = sumTime(dispHw);
+    const lockedN = cntLocked(dispHw);
+
+    main.appendChild(renderSubjChips(dispHw));
+    main.appendChild(el("div", { class: "bp-card bp-prev-head" }, [
+      el("h1", { class: "bp-prev-title" }, [
+        el("span", { class: "bp-cn", text: S.settings.className || "本班" }),
+        el("span", { class: "bp-dt", text: fmtDate() }),
+      ]),
+      el("div", { class: "bp-stats" }, [
+        el("span", { class: "bp-stat" }, [icon("assignment"), "作业 " + totalHw + " 项"]),
+        el("span", { class: "bp-stat" }, [icon("lock"), "锁定 " + lockedN + " 项"]),
+        totalTime > 0 ? el("span", { class: "bp-stat" }, [icon("schedule"), "预计 " + totalTime + " 分钟"]) : null,
+      ].filter(Boolean)),
+    ]));
+
+    const grid = el("div", { class: "bp-grid" });
+    const subjectsWithHw = SUBJECTS.filter(s => dispHw[s] && dispHw[s].homeworks.length > 0);
+    if (subjectsWithHw.length === 0) {
+      grid.appendChild(el("div", { class: "bp-state", style: "grid-column: 1 / -1;" }, [
+        icon("inbox"), el("h2", { text: "今日无作业" }),
+        el("p", { text: "所有科目暂未布置作业。" }),
+      ]));
+    } else {
+      subjectsWithHw.forEach(s => grid.appendChild(buildSubjCard(s, dispHw)));
+    }
+    main.appendChild(grid);
+    main.appendChild(buildAnnCard());
+  }
+
+  function renderSubjChips(dispHw) {
+    const sb = el("div", { class: "bp-subj-chips" });
+    SUBJECTS.forEach(s => {
+      const m = SUBJ[s];
+      const cnt = dispHw[s] ? dispHw[s].homeworks.length : 0;
+      sb.appendChild(el("button", {
+        class: "bp-subj-chip" + (cnt > 0 ? " active" : ""),
+        style: "--bg:" + m.bg + ";",
+        onclick: () => scrollSubj(s),
+      }, [
+        el("span", { class: "bp-dot" }),
+        el("span", { text: s }),
+        cnt > 0 ? el("span", { class: "bp-cnt", text: String(cnt) }) : null,
+      ].filter(Boolean)));
+    });
+    return sb;
+  }
+
+  function buildSubjCard(s, hw) {
+    const m = SUBJ[s];
+    const list = hw[s].homeworks;
+    return el("div", { class: "bp-subj-card", "data-subject": s,
+      style: "--bg:" + m.bg + "; --fg:" + m.fg + "; --bd:" + m.bd + ";" }, [
+      el("div", { class: "bp-subj-head" }, [
+        el("div", { class: "bp-subj-ic" }, [icon(m.icon)]),
+        el("div", { class: "bp-subj-nm", text: s }),
+        el("div", { class: "bp-subj-cnt", text: list.length + " 项" }),
+      ]),
+      el("div", { class: "bp-hw-list" }, list.map(h => el("div", { class: "bp-hw-item" + (h.locked ? " locked" : "") }, [
+        el("div", { class: "bp-hw-bull" }),
+        el("div", { class: "bp-hw-content" }, [
+          el("div", { class: "bp-hw-text", text: h.content || "（无内容）" }),
+          el("div", { class: "bp-hw-meta" }, [
+            h.submitTime ? el("span", {}, [icon("schedule"), h.submitTime]) : null,
+            h.estimatedTime ? el("span", {}, [icon("timer"), h.estimatedTime + " 分"]) : null,
+          ].filter(Boolean)),
+        ]),
+        h.locked ? el("div", { class: "bp-lock-badge" }, [icon("lock"), "锁定"]) : null,
+      ].filter(Boolean)))),
+    ]);
+  }
+
+  function buildAnnCard() {
+    const sorted = S.ann.slice().sort((a, b) => a.pinned === b.pinned ? 0 : a.pinned ? -1 : 1);
+    const list = el("div", { class: "bp-ann-list" });
+    if (!sorted.length) list.appendChild(el("div", { class: "bp-ann-empty", text: "暂无公告" }));
+    else sorted.forEach(a => list.appendChild(el("div", { class: "bp-ann-item" + (a.pinned ? " pinned" : "") }, [
+      a.pinned ? el("span", { class: "bp-ann-pin" }, [icon("push_pin"), "置顶"]) : null,
+      el("div", { class: "bp-ann-text", text: a.content }),
+    ].filter(Boolean))));
+    return el("div", { class: "bp-card bp-ann-card" }, [
+      el("div", { class: "bp-ann-head" }, [icon("campaign"), "班级公告"]),
+      list,
+    ]);
+  }
+
+  function scrollSubj(s) {
+    const t = document.querySelector('.bp-subj-card[data-subject="' + s + '"]');
+    if (t) {
+      t.scrollIntoView({ behavior: "smooth", block: "start" });
+      const old = t.style.boxShadow;
+      t.style.boxShadow = "0 0 0 3px #1a1a1a, " + (old || "");
+      setTimeout(() => { t.style.boxShadow = old; }, 1000);
+    }
+  }
+
+  // ============================================================
+  // Edit mode
+  // ============================================================
+  function renderEditInto(main) {
+    const m = SUBJ[S.editSubj];
+    const editHw = applyIgnore(S.hw);
+    const list = editHw[S.editSubj] ? editHw[S.editSubj].homeworks : [];
+
+    main.appendChild(renderSubjChips(editHw));
+    main.appendChild(el("div", { class: "bp-card bp-prev-head" }, [
+      el("div", { class: "bp-subj-head", style: "margin:0;" }, [
+        el("div", { class: "bp-subj-ic", style: "--fg:" + m.fg + "; --bd:" + m.bd + ";" }, [icon(m.icon)]),
+        el("h2", { style: "margin:0; font-size:18px; font-weight:900; color:" + m.fg + ";", text: S.editSubj + " · 编辑作业" }),
+        el("div", { class: "bp-subj-cnt", text: list.length + " 项" }),
+      ]),
+    ]));
+
+    const editList = el("div", { class: "bp-edit-list" });
+    if (!list.length) editList.appendChild(el("div", { class: "bp-empty-hw", text: "暂无作业项，点击下方「添加作业项」开始" }));
+    else list.forEach((h, idx) => editList.appendChild(buildEditItem(h, idx)));
+    main.appendChild(editList);
+
+    main.appendChild(el("div", { style: "display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;" }, [
+      btn({ variant: "success", icon: "add", label: "添加作业项", onclick: addHwItem }),
+      btn({ variant: "danger", icon: "delete_sweep", label: "快捷清空未锁定", onclick: quickClear }),
+      btn({ variant: "primary", icon: "save", label: "保存到云端", onclick: saveHw }),
+    ]));
+
+    // Subject quick switcher (chips for edit mode)
+    main.appendChild(el("div", { style: "display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px;" },
+      SUBJECTS.map(s => {
+        const sm = SUBJ[s];
+        return el("button", {
+          class: "bp-subj-chip" + (S.editSubj === s ? " active" : ""),
+          style: "--bg:" + sm.bg + ";",
+          onclick: () => { S.editSubj = s; render(); },
+        }, [el("span", { class: "bp-dot" }), el("span", { text: s })]);
+      })));
+  }
+
+  function buildEditItem(h, idx) {
+    const item = el("div", { class: "bp-edit-item" + (h.locked ? " locked" : "") });
+    item.appendChild(el("div", { class: "bp-edit-head" }, [
+      el("span", { class: "bp-edit-num", text: "#" + (idx + 1) }),
+      el("div", { class: "bp-edit-acts" }, [
+        el("button", { class: "bp-edit-act", onclick: () => moveHw(idx, -1), title: "上移" }, [icon("arrow_upward")]),
+        el("button", { class: "bp-edit-act", onclick: () => moveHw(idx, 1), title: "下移" }, [icon("arrow_downward")]),
+        el("button", { class: "bp-edit-act" + (h.locked ? " active" : ""), onclick: () => toggleLock(idx), title: "锁定" }, [icon(h.locked ? "lock" : "lock_open")]),
+        el("button", { class: "bp-edit-act del", onclick: () => delHw(idx), title: "删除" }, [icon("delete")]),
+      ]),
+    ]));
+    item.appendChild(el("div", { class: "bp-edit-row" }, [
+      el("label", { text: "作业内容" }),
+      el("textarea", { rows: 2, placeholder: "如：完成练习册 P12-13 题 1-5",
+        oninput: e => updField(idx, "content", e.target.value) }, h.content),
+    ]));
+    const gs = getGlobal();
+    if (gs.shortcuts && gs.shortcuts.length) {
+      const chips = el("div", { class: "bp-edit-chips" });
+      gs.shortcuts.slice(0, 8).forEach(s => chips.appendChild(el("button", { class: "bp-edit-chip", onclick: () => {
+        const ta = item.querySelector("textarea");
+        ta.value = (ta.value ? ta.value + " " : "") + s;
+        updField(idx, "content", ta.value);
+      } }, [s])));
+      item.appendChild(chips);
+    }
+    item.appendChild(el("div", { class: "bp-edit-meta" }, [
+      el("div", { class: "bp-edit-row" }, [
+        el("label", { text: "提交时间" }),
+        el("input", { type: "text", value: h.submitTime, placeholder: "如：晚前",
+          oninput: e => updField(idx, "submitTime", e.target.value) }),
+        el("div", { class: "bp-edit-chips" }, (gs.timeOptions || []).slice(0, 4).map(t =>
+          el("button", { class: "bp-edit-chip", onclick: e => {
+            const inp = e.target.closest(".bp-edit-row").querySelector("input");
+            inp.value = t; updField(idx, "submitTime", t);
+          } }, [t]))),
+      ]),
+      el("div", { class: "bp-edit-row" }, [
+        el("label", { text: "预计耗时(分)" }),
+        el("input", { type: "text", inputmode: "numeric", value: h.estimatedTime, placeholder: "如：20",
+          oninput: e => updField(idx, "estimatedTime", e.target.value.replace(/\D/g, "")) }),
+      ]),
+    ]));
+    return item;
+  }
+
+  function findRawIdx(filteredIdx) {
+    const rawList = S.hw[S.editSubj].homeworks;
+    let scan = 0;
+    for (let i = 0; i < rawList.length; i++) {
+      if (isIgnored(rawList[i])) continue;
+      if (scan === filteredIdx) return i;
+      scan++;
+    }
+    return -1;
+  }
+  function updField(filteredIdx, field, value) {
+    const rawIdx = findRawIdx(filteredIdx);
+    if (rawIdx >= 0) S.hw[S.editSubj].homeworks[rawIdx][field] = value;
+  }
+  function addHwItem() {
+    S.hw[S.editSubj].homeworks.push({ content: "", submitTime: "", estimatedTime: "", locked: false });
+    render();
+  }
+  function delHw(filteredIdx) {
+    const rawIdx = findRawIdx(filteredIdx);
+    if (rawIdx < 0) return;
+    if (S.hw[S.editSubj].homeworks[rawIdx].locked && !confirm("该作业已被锁定，确认删除？")) return;
+    S.hw[S.editSubj].homeworks.splice(rawIdx, 1);
+    render();
+  }
+  function moveHw(filteredIdx, dir) {
+    const rawIdx = findRawIdx(filteredIdx);
+    if (rawIdx < 0) return;
+    const rawList = S.hw[S.editSubj].homeworks;
+    let step = dir, newRaw = rawIdx + step;
+    while (newRaw >= 0 && newRaw < rawList.length && isIgnored(rawList[newRaw])) newRaw += step;
+    if (newRaw < 0 || newRaw >= rawList.length) return;
+    const tmp = rawList[rawIdx]; rawList[rawIdx] = rawList[newRaw]; rawList[newRaw] = tmp;
+    render();
+  }
+  function toggleLock(filteredIdx) {
+    const rawIdx = findRawIdx(filteredIdx);
+    if (rawIdx < 0) return;
+    S.hw[S.editSubj].homeworks[rawIdx].locked = !S.hw[S.editSubj].homeworks[rawIdx].locked;
+    render();
+  }
+  function quickClear() {
+    if (!confirm("确认清空所有科目未锁定作业？锁定作业将保留。")) return;
+    for (const s of SUBJECTS) {
+      if (S.hw[s] && S.hw[s].homeworks) S.hw[s].homeworks = S.hw[s].homeworks.filter(h => h.locked);
+    }
+    toast("已清空未锁定作业（保存后生效）", "success");
+    render();
+  }
+  async function saveHw() {
+    const c = getSbCreds(); if (!c.url || !c.key) return;
+    try {
+      const row = await patchClass(c.url, c.key, S.bound.bindCode, { homework_data: S.hw });
+      S.row = row; S.hw = normHw(row);
+      toast("作业已保存并同步到云端", "success");
+      S.view = "preview"; render();
+    } catch (e) { toast(e instanceof Error ? e.message : "保存失败", "error"); }
+  }
+
+  // ============================================================
+  // Announcement editor
+  // ============================================================
+  function renderAnnEditorInto(main) {
+    main.appendChild(renderSubjChips(applyIgnore(S.hw)));
+    main.appendChild(el("div", { class: "bp-card bp-prev-head" }, [
+      el("h2", { style: "margin:0; font-size:18px; font-weight:900;", text: "公告管理" }),
+      el("p", { style: "margin:6px 0 0 0; font-size:12px; font-weight:600;", text: "编辑完成后请点「保存到云端」同步到 Supabase。" }),
+    ]));
+
+    const list = el("div", { class: "bp-edit-list" });
+    if (!S.ann.length) list.appendChild(el("div", { class: "bp-empty-hw", text: "暂无公告，点击下方「添加公告」" }));
+    else S.ann.forEach((a, idx) => list.appendChild(el("div", { class: "bp-edit-item" + (a.pinned ? " locked" : "") }, [
+      el("div", { class: "bp-edit-head" }, [
+        el("span", { class: "bp-edit-num", text: "#" + (idx + 1) }),
+        el("div", { class: "bp-edit-acts" }, [
+          el("button", { class: "bp-edit-act" + (a.pinned ? " active" : ""), onclick: () => { S.ann[idx].pinned = !S.ann[idx].pinned; render(); }, title: "置顶" }, [icon("push_pin")]),
+          el("button", { class: "bp-edit-act del", onclick: () => { S.ann.splice(idx, 1); render(); }, title: "删除" }, [icon("delete")]),
+        ]),
+      ]),
+      el("div", { class: "bp-edit-row" }, [
+        el("label", { text: "公告内容" }),
+        el("textarea", { rows: 2, placeholder: "如：明天下午3点家长会",
+          oninput: e => { S.ann[idx].content = e.target.value; } }, a.content),
+      ]),
+    ])));
+    main.appendChild(list);
+
+    main.appendChild(el("div", { style: "display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;" }, [
+      btn({ variant: "success", icon: "add", label: "添加公告", onclick: () => {
+        S.ann.push({ id: String(Math.random()), content: "", pinned: false }); render();
+      } }),
+      btn({ variant: "primary", icon: "save", label: "保存到云端", onclick: saveAnn }),
+    ]));
+  }
+  async function saveAnn() {
+    const c = getSbCreds(); if (!c.url || !c.key) return;
+    const cleaned = S.ann.filter(a => a.content.trim());
+    try {
+      const row = await patchClass(c.url, c.key, S.bound.bindCode, { announcement: cleaned });
+      S.row = row; S.ann = normAnn(row);
+      toast("公告已保存并同步到云端", "success");
+      S.view = "preview"; render();
+    } catch (e) { toast(e instanceof Error ? e.message : "保存失败", "error"); }
+  }
+
+  // ============================================================
+  // Settings modal — 修复"自己打开"问题：
+  //   - 不在每次输入后调用 renderSettings()，而是直接操作 DOM
+  //   - 添加/删除项时只重建 list 容器，不重建整个 modal
+  //   - 切换 tab 时只重建 tab-content，不重建整个 modal
+  //   - 关闭按钮只有一个（右上角 X）
+  // ============================================================
+  function renderSettingsModal() {
+    const m = el("div", { class: "bp-modal-bg", onclick: e => { if (e.target === m) closeSettings(); } }, [
+      el("div", { class: "bp-modal", id: "bp-settings-modal" }, [
+        el("div", { class: "bp-modal-head" }, [
+          icon("settings"), el("h2", { text: "设置" }),
+          el("button", { class: "bp-modal-x", onclick: closeSettings }, [icon("close")]),
+        ]),
+        buildSettingsBody(),
+      ]),
+    ]);
+    document.body.appendChild(m);
+  }
+  function closeSettings() {
+    const bg = document.querySelector(".bp-modal-bg");
+    if (bg) bg.remove();
+    S.view = "preview";
+    render();
+  }
+  function buildSettingsBody() {
+    const wrap = el("div", { id: "bp-settings-body" });
+    const tabs = el("div", { class: "bp-tabs" }, [
+      tabBtn("shortcuts", "快捷短语"),
+      tabBtn("timeOptions", "提交时间"),
+      tabBtn("importantDates", "重要日期"),
+      tabBtn("bindInfo", "绑定信息"),
+    ]);
+    wrap.appendChild(tabs);
+    wrap.appendChild(buildTabContent());
+    return wrap;
+  }
+  function tabBtn(id, label) {
+    return el("button", { class: "bp-tab" + (S.activeSettingsTab === id ? " active" : ""),
+      onclick: () => { S.activeSettingsTab = id; refreshSettingsTab(); } }, [label]);
+  }
+  function refreshSettingsTab() {
+    const body = document.getElementById("bp-settings-body");
+    if (!body) return;
+    // Replace tab content (second child onward, keep tabs)
+    while (body.children.length > 1) body.removeChild(body.lastChild);
+    body.appendChild(buildTabContent());
+    // Update tab active states
+    body.querySelectorAll(".bp-tab").forEach((t, i) => {
+      const ids = ["shortcuts", "timeOptions", "importantDates", "bindInfo"];
+      t.classList.toggle("active", S.activeSettingsTab === ids[i]);
+    });
+  }
+  function buildTabContent() {
+    const gs = getGlobal();
+    if (S.activeSettingsTab === "shortcuts") {
+      return listEditor("快捷输入短语", "在编辑作业内容时一键追加这些短语。", gs.shortcuts || [],
+        () => { if (!gs.shortcuts) gs.shortcuts = []; gs.shortcuts.push("新短语"); saveGlobal(gs); refreshSettingsTab(); },
+        i => { gs.shortcuts.splice(i, 1); saveGlobal(gs); refreshSettingsTab(); },
+        (i, v) => { gs.shortcuts[i] = v; saveGlobal(gs); });
+    } else if (S.activeSettingsTab === "timeOptions") {
+      return listEditor("提交时间快捷选项", "编辑作业时一键填入这些时间。", gs.timeOptions || [],
+        () => { if (!gs.timeOptions) gs.timeOptions = []; gs.timeOptions.push("新时间"); saveGlobal(gs); refreshSettingsTab(); },
+        i => { gs.timeOptions.splice(i, 1); saveGlobal(gs); refreshSettingsTab(); },
+        (i, v) => { gs.timeOptions[i] = v; saveGlobal(gs); });
+    } else if (S.activeSettingsTab === "importantDates") {
+      const dates = gs.importantDates || [];
+      const items = el("div", { id: "bp-dates-list" });
+      if (!dates.length) items.appendChild(el("div", { class: "bp-empty-hw", text: "暂无重要日期" }));
+      else dates.forEach((d, i) => items.appendChild(el("div", { class: "bp-list-item" }, [
+        el("input", { type: "text", value: d.name, placeholder: "日期名称",
+          oninput: e => { dates[i].name = e.target.value; saveGlobal(gs); } }),
+        el("input", { type: "date", value: d.date, onchange: e => { dates[i].date = e.target.value; saveGlobal(gs); refreshSettingsTab(); }, style: "max-width:150px;" }),
+        el("button", { onclick: () => { dates.splice(i, 1); saveGlobal(gs); refreshSettingsTab(); } }, [icon("delete")]),
+      ])));
+      const wrap = el("div", {}, [
+        el("div", { class: "bp-tip", text: "添加考试、放假等重要日期，顶部会自动倒计时。" }),
+        items,
+        el("div", { style: "margin-top:10px;" }, [
+          btn({ variant: "success", icon: "add", label: "添加日期", onclick: () => {
+            dates.push({ name: "新日期", date: todayStr() }); saveGlobal(gs); refreshSettingsTab();
+          } }),
+        ]),
+      ]);
+      return wrap;
+    } else if (S.activeSettingsTab === "bindInfo") {
+      return el("div", {}, [
+        el("div", { class: "bp-tip", text: "切换班级请在原版课堂端完成（油猴扩展菜单禁用本脚本 → 刷新 → 原版设置切换 → 启用本脚本 → 刷新）。" }),
+        el("div", { class: "bp-field" }, [
+          el("label", { text: "班级名称" }),
+          el("input", { type: "text", value: S.bound ? S.bound.className : "", readonly: true }),
+        ]),
+        el("div", { class: "bp-field" }, [
+          el("label", { text: "班级绑定码" }),
+          el("div", { style: "display:flex; gap:8px; align-items:center;" }, [
+            el("div", { class: "bp-bind-code", text: S.bound ? S.bound.bindCode : "无" }),
+            btn({ icon: "content_copy", label: "复制", onclick: () => {
+              if (S.bound) navigator.clipboard.writeText(S.bound.bindCode).then(() => toast("已复制", "success"));
+            } }),
+          ]),
+        ]),
+      ]);
+    }
+    return el("div");
+  }
+  function listEditor(title, tip, items, onAdd, onDelete, onUpdate) {
+    const wrap = el("div");
+    wrap.appendChild(el("div", { class: "bp-tip", text: tip }));
+    const listWrap = el("div", {});
+    const renderItems = () => {
+      while (listWrap.firstChild) listWrap.removeChild(listWrap.firstChild);
+      items.forEach((it, i) => listWrap.appendChild(el("div", { class: "bp-list-item" }, [
+        el("input", { type: "text", value: it, oninput: e => onUpdate(i, e.target.value) }),
+        el("button", { onclick: () => { onDelete(i); renderItems(); } }, [icon("delete")]),
+      ])));
+    };
+    renderItems();
+    wrap.appendChild(listWrap);
+    wrap.appendChild(el("div", { style: "margin-top:10px;" }, [
+      btn({ variant: "success", icon: "add", label: "添加", onclick: () => { onAdd(); renderItems(); } }),
+    ]));
+    return wrap;
+  }
+
+  // ============================================================
+  // Important dates modal
+  // ============================================================
+  function renderDatesModal() {
+    const m = el("div", { class: "bp-modal-bg", onclick: e => { if (e.target === m) { m.remove(); S.view = "preview"; render(); } } }, [
+      el("div", { class: "bp-modal" }, [
+        el("div", { class: "bp-modal-head" }, [
+          icon("event_note"), el("h2", { text: "重要日期" }),
+          el("button", { class: "bp-modal-x", onclick: () => { m.remove(); S.view = "preview"; render(); } }, [icon("close")]),
+        ]),
+        buildDatesContent(),
+        el("div", { class: "bp-modal-actions" }, [
+          btn({ icon: "settings", label: "去设置", onclick: () => {
+            m.remove(); S.view = "settings"; S.activeSettingsTab = "importantDates"; render();
+          } }),
+        ]),
+      ]),
+    ]);
+    document.body.appendChild(m);
+  }
+  function buildDatesContent() {
+    const dates = importantDates();
+    if (!dates.length) return el("div", { class: "bp-empty-hw", text: "暂无重要日期，可在「设置 → 重要日期」中添加" });
+    return el("div", { class: "bp-edit-list" }, dates.map(d => {
+      const days = daysUntil(d.date);
+      const past = days < 0; const today = days === 0;
+      return el("div", { class: "bp-edit-item" }, [
+        el("div", { style: "display:flex; align-items:center; gap:10px;" }, [
+          el("div", { style: "width:48px; height:48px; border:2.5px solid #1a1a1a; display:flex; flex-direction:column; align-items:center; justify-content:center; background:" + (past ? "#e8e8e8" : today ? "#c8f0d4" : "#ffd8a8") + "; box-shadow:2px 2px 0 #1a1a1a;" }, [
+            el("span", { style: "font-size:18px; font-weight:900; line-height:1;", text: String(Math.abs(days)) }),
+            el("span", { style: "font-size:10px; font-weight:700;", text: past ? "天前" : "天后" }),
+          ]),
+          el("div", { style: "flex:1 1 auto; min-width:0;" }, [
+            el("div", { style: "font-weight:900; color:#1a1a1a;", text: d.name }),
+            el("div", { style: "font-size:12px; font-weight:600; color:#555;", text: d.date }),
+          ]),
+          el("div", { style: "flex:0 0 auto; font-size:13px; font-weight:800; color:" + (past ? "#555" : today ? "#15803d" : "#7c2d3a") + ";",
+            text: today ? "今天" : past ? "已过 " + Math.abs(days) + " 天" : "倒计时 " + days + " 天" }),
+        ]),
+      ]);
+    }));
+  }
+
+  // ============================================================
+  // About
+  // ============================================================
+  function renderAboutModal() {
+    const m = el("div", { class: "bp-modal-bg", onclick: e => { if (e.target === m) { m.remove(); S.view = "preview"; render(); } } }, [
+      el("div", { class: "bp-modal" }, [
+        el("div", { class: "bp-modal-head" }, [
+          icon("info"), el("h2", { text: "关于" }),
+          el("button", { class: "bp-modal-x", onclick: () => { m.remove(); S.view = "preview"; render(); } }, [icon("close")]),
+        ]),
+        el("div", { style: "display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:28px 0;" }, [
+          el("div", { style: "font-size:18px; font-weight:800; color:#1a1a1a;" }, ["Made With Z.ai"]),
+          el("a", { href: "https://github.com/martin65536/", target: "_blank", rel: "noreferrer",
+            style: "font-size:14px; font-weight:600; color:#1d4ed8; text-decoration:underline;" },
+            ["github.com/martin65536"]),
+          el("div", { style: "font-size:13px; font-weight:700; color:#7c2d3a; padding:6px 12px; border:2px solid #7c2d3a; background:#fde2e4;" },
+            ["绝对不是7班"]),
+        ]),
+      ]),
+    ]);
+    document.body.appendChild(m);
+  }
+
+  // ============================================================
+  // Evening mode
+  // ============================================================
+  function renderEvening() {
+    document.body.classList.add("bp-evening");
+    const overlay = el("div", { class: "bp-evening-overlay" });
+    overlay.appendChild(el("div", { class: "bp-evening-head" }, [
+      el("div", {}, [
+        el("div", { class: "bp-evening-title", text: S.settings.className || "本班" }),
+        el("div", { class: "bp-evening-date", text: fmtDate() }),
+      ]),
+      el("div", { class: "bp-evening-clock", id: "bp-evening-clock", text: nowClock() }),
+    ]));
+    overlay.appendChild(el("div", { class: "bp-evening-yiyan", id: "bp-evening-yiyan" }, [
+      icon("auto_stories"), el("span", { id: "bp-yiyan-text", text: S.yiyan || "正在加载一言…", style: "flex: 1 1 auto;" }),
+      btn({ icon: "history", iconOnly: true, title: "查看历史一言", onclick: openYiyanHistory }),
+    ]));
+    if (!S.yiyan) refreshYiyan();
+    const grid = el("div", { class: "bp-grid" });
+    const dispHw = applyIgnore(S.hw);
+    const subjWithHw = SUBJECTS.filter(s => dispHw[s] && dispHw[s].homeworks.length > 0);
+    if (!subjWithHw.length) {
+      grid.appendChild(el("div", { class: "bp-state", style: "grid-column: 1 / -1;" }, [icon("inbox"), el("h2", { text: "今日无作业" })]));
+    } else {
+      subjWithHw.forEach(s => grid.appendChild(buildSubjCard(s, dispHw)));
+    }
+    overlay.appendChild(grid);
+    overlay.appendChild(buildAnnCard());
+    overlay.appendChild(el("button", { class: "bp-evening-close",
+      onclick: () => { S.evening = false; document.body.classList.remove("bp-evening"); if (S.yiyanTimer) { clearInterval(S.yiyanTimer); S.yiyanTimer = null; } render(); } },
+      [icon("close"), "退出晚自习"]));
+    document.body.appendChild(overlay);
+  }
+  async function refreshYiyan() {
+    const text = await fetchYiyan();
+    S.yiyan = text;
+    const e = document.getElementById("bp-yiyan-text");
+    if (e) e.innerHTML = text;
+  }
+  function startYiyanTimer() {
+    if (S.yiyanTimer) clearInterval(S.yiyanTimer);
+    S.yiyanTimer = setInterval(refreshYiyan, 60000);
+  }
+  function openYiyanHistory() {
+    const hist = getYiyanHistory();
+    const list = el("div", { style: "max-height:60vh; overflow-y:auto; display:flex; flex-direction:column; gap:6px; padding:4px;" });
+    if (!hist.length) {
+      list.appendChild(el("div", { class: "bp-empty-hw", text: "暂无历史一言，进入晚自习后自动收集" }));
+    } else {
+      // 倒序展示（最新在前）
+      hist.slice().reverse().forEach((text, idx) => {
+        list.appendChild(el("div", { class: "bp-list-item", style: "padding:8px 12px; background:#fff; border-color:#1a1a1a;" }, [
+          el("span", { style: "font-size:10px; font-weight:800; color:#555; flex:0 0 auto; background:#ffd8a8; border:2px solid #1a1a1a; padding:1px 6px;",
+            text: String(hist.length - idx) }),
+          el("span", { style: "flex:1 1 auto; font-size:13px; font-weight:600; color:#1a1a1a; line-height:1.5;", text: text }),
+        ]));
+      });
+    }
+    const m = el("div", { class: "bp-modal-bg", onclick: e => { if (e.target === m) m.remove(); } }, [
+      el("div", { class: "bp-modal" }, [
+        el("div", { class: "bp-modal-head" }, [
+          icon("history"), el("h2", { text: "历史一言（" + hist.length + " 条）" }),
+          el("button", { class: "bp-modal-x", onclick: () => m.remove() }, [icon("close")]),
+        ]),
+        list,
+        el("div", { class: "bp-modal-actions" }, [
+          btn({ variant: "danger", icon: "delete", label: "清空历史", onclick: () => {
+            if (!confirm("确认清空所有历史一言？此操作不可撤销。")) return;
+            clearYiyanHistory(); m.remove();
+            toast("已清空历史一言", "success");
+          } }),
+        ]),
+      ]),
+    ]);
+    document.body.appendChild(m);
+  }
+
+  // ============================================================
+  // Export PNG
+  // ============================================================
+  async function exportPng() {
+    if (typeof html2canvas === "undefined") { toast("html2canvas 未加载", "error"); return; }
+    toast("正在生成图片…");
+    const dispHw = applyIgnore(S.hw);
+    const area = el("div", { style: "position:fixed; left:-9999px; top:0; background:#faf7f2; padding:32px;" });
+    area.appendChild(el("div", { style: "font-size:" + S.settings.exportFontSize + "px; font-weight:900; color:#1a1a1a; margin-bottom:16px; padding:8px 16px; background:#ffd8a8; border:2.5px solid #1a1a1a; display:inline-block;" },
+      [S.settings.exportTitle + (S.settings.exportAddDate ? "（" + todayStr() + "）" : "")]));
+    SUBJECTS.forEach(s => {
+      const list = dispHw[s] ? dispHw[s].homeworks : [];
+      if (!list.length) return;
+      const m = SUBJ[s];
+      const subj = el("div", { style: "margin-bottom:14px;" });
+      subj.appendChild(el("div", { style: "font-size:" + (S.settings.exportFontSize - 4) + "px; font-weight:900; color:" + m.fg + "; margin-bottom:6px; padding:4px 10px; background:" + m.bg + "; border:2px solid " + m.bd + "; display:inline-block;" },
+        [s + "（" + list.length + " 项）"]));
+      list.forEach(h => subj.appendChild(el("div", {
+        style: "font-size:" + (S.settings.exportFontSize - 6) + "px; color:#1a1a1a; padding:3px 0 3px 14px; line-height:1.5; font-weight:600;",
+      }, ["• " + h.content + (h.submitTime ? "  [提交：" + h.submitTime + "]" : "") + (h.estimatedTime ? "  [耗时：" + h.estimatedTime + " 分]" : "") + (h.locked ? "  🔒" : "")])));
+      area.appendChild(subj);
+    });
+    document.body.appendChild(area);
+    await new Promise(r => setTimeout(r, 100));
+    try {
+      const canvas = await html2canvas(area, { scale: 2, backgroundColor: "#faf7f2" });
+      const link = document.createElement("a");
+      link.download = (S.settings.className || "本班") + "_" + todayStr() + ".png";
+      link.href = canvas.toDataURL();
+      link.click();
+      toast("图片已下载", "success");
+    } catch (e) { toast("导出失败：" + (e instanceof Error ? e.message : ""), "error"); }
+    finally { area.remove(); }
+  }
+
+  // ============================================================
+  // Data loading
+  // ============================================================
+  async function loadData(auto) {
+    const c = getSbCreds();
+    if (!c.url || !c.key) { S.connected = false; render(); return; }
+    S.connected = true;
+    const b = getBound();
+    if (!b) { S.bound = null; render(); return; }
+    S.bound = b; S.loading = true; S.error = null;
+    if (!S.row) render();
+    try {
+      const row = await fetchClass(c.url, c.key, b.bindCode);
+      if (!row) { S.error = "找不到绑定码「" + b.bindCode + "」对应的班级"; S.loading = false; render(); return; }
+      const prevRow = S.row;
+      S.row = row; S.settings = normSet(row); S.hw = normHw(row); S.ann = normAnn(row);
+      S.loading = false;
+      // If this was an auto-refresh and we're in a modal/edit view, don't re-render UI
+      if (auto && prevRow && (S.view === "settings" || S.view === "about" || S.view === "importantDates" ||
+          S.view === "edit" || S.view === "announcement")) {
+        S._autoRefresh = true;
+        // Don't render() — UI stays
+      } else {
+        render();
+      }
+    } catch (e) {
+      S.error = e instanceof Error ? e.message : String(e); S.loading = false; render();
+    }
+  }
+  function startAuto() { stopAuto(); S.autoTimer = setInterval(() => loadData(true), 30000); }
+  function stopAuto() { if (S.autoTimer) { clearInterval(S.autoTimer); S.autoTimer = null; } }
+  function startClock() {
+    if (S.clockTimer) clearInterval(S.clockTimer);
+    S.clockTimer = setInterval(() => {
+      const c1 = document.getElementById("bp-clock"); if (c1) c1.innerHTML = nowClock();
+      const c2 = document.getElementById("bp-evening-clock"); if (c2) c2.innerHTML = nowClock();
+    }, 30000);
+  }
+
+  // ============================================================
+  // Boot
+  // ============================================================
+  function boot() {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "https://fonts.googleapis.com/icon?family=Material+Icons";
+    document.head.appendChild(link);
+    const style = document.createElement("style");
+    style.id = "bp-theme";
+    style.innerHTML = CSS;
+    document.head.appendChild(style);
+    loadData(false);
+    startClock();
+    startAuto();
+    window.addEventListener("storage", e => {
+      if (e.key === LS.sbUrl || e.key === LS.sbKey || e.key === LS.boundClass) loadData(false);
+    });
+    // Evening mode auto-starts yiyan timer
+    const origRenderEvening = renderEvening;
+    renderEvening = function() { origRenderEvening(); refreshYiyan(); startYiyanTimer(); };
+  }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot, { once: true 
+})();
+
+    </script>
+</body>
+</html>
