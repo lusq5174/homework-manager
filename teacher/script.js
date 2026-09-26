@@ -1,3 +1,23 @@
+		(function ensureFontAwesome() {
+			var FA_HREF = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css';
+			setTimeout(function () {
+				try {
+					var loaded = Array.prototype.some.call(document.styleSheets || [], function (s) {
+						return !!s.href && s.href.indexOf('font-awesome') !== -1;
+					});
+					if (loaded) return;
+					var old = document.querySelector('link[href*="font-awesome"]');
+					if (!old || !old.parentNode) return;
+					var link = document.createElement('link');
+					link.rel = 'stylesheet';
+					link.href = FA_HREF;
+					old.parentNode.insertBefore(link, old.nextSibling);
+					old.parentNode.removeChild(old);
+					console.warn('[FontAwesome] CORS 模式加载失败，已降级为普通模式');
+				} catch (e) {}
+			}, 2000);
+		})();
+
 		const $ = (selector) => document.querySelector(selector);
 		const $$ = (selector) => document.querySelectorAll(selector);
 
@@ -729,22 +749,64 @@
 			}
 			return 0;
 		}
+		const UPDATE_REPO_API = 'https://api.github.com/repos/lusq5174/homework-manager';
+		const UPDATE_REPO_HOME = 'https://github.com/lusq5174/homework-manager';
+		const IGNORE_KEY = 'ignoredUpdateVersion';
+
+		function getIgnoredVersion() {
+			try { return localStorage.getItem(IGNORE_KEY) || ''; } catch (e) { return ''; }
+		}
+
+		/** 带超时的 fetch，避免网络异常时请求长期挂起（默认 8 秒） */
+		async function fetchWithTimeout(url, options, timeout) {
+			const ms = timeout || 8000;
+			if (typeof AbortController === 'undefined') return fetch(url, options);
+			const ctrl = new AbortController();
+			const timer = setTimeout(() => ctrl.abort(), ms);
+			try {
+				return await fetch(url, Object.assign({}, options, { signal: ctrl.signal }));
+			} finally {
+				clearTimeout(timer);
+			}
+		}
+
+		/** 每次打开页面时调用：拉取最新发行版版本号并与本地版本比对 */
 		async function checkForUpdates() {
 			try {
-				const today = new Date().toISOString().split('T')[0];
-				const lastCheck = localStorage.getItem('lastUpdateCheck');
-				if (lastCheck === today) return;
-				localStorage.setItem('lastUpdateCheck', today);
-				const resp = await fetch('https://api.github.com/repos/lusq5174/homework-manager/releases/latest', {
-					headers: { 'Accept': 'application/vnd.github+json' }
-				});
-				if (!resp.ok) return;
-				const data = await resp.json();
-				if (!data || !data.tag_name) return;
-				if (compareVersions(data.tag_name, APP_CONFIG.version) !== 0) {
-					showUpdateModal(data.tag_name, data.html_url || 'https://github.vom/lusq5174/homework-manager', data.body || '');
+				const ghHeaders = { 'Accept': 'application/vnd.github+json' };
+				let remoteVersion = '';
+				let releaseUrl = UPDATE_REPO_HOME;
+				let releaseNotes = '';
+
+				// 优先取最新发行版；仓库若只打 Tag 未发 Release，则回退取最新 Tag
+				const resp = await fetchWithTimeout(UPDATE_REPO_API + '/releases/latest', { headers: ghHeaders });
+				if (resp.ok) {
+					const data = await resp.json();
+					remoteVersion = (data && data.tag_name) || '';
+					releaseUrl = (data && data.html_url) || UPDATE_REPO_HOME;
+					releaseNotes = (data && data.body) || '';
+				} else {
+					const tagResp = await fetchWithTimeout(UPDATE_REPO_API + '/tags?per_page=1', { headers: ghHeaders });
+					if (!tagResp.ok) return;
+					const tags = await tagResp.json();
+					if (!Array.isArray(tags) || !tags.length || !tags[0].name) return;
+					remoteVersion = tags[0].name;
+					releaseUrl = UPDATE_REPO_HOME + '/releases';
 				}
-			} catch (e) { /* 网络错误静默处理 */ }
+				if (!remoteVersion) return;
+
+				if (compareVersions(remoteVersion, APP_CONFIG.version) > 0) {
+					// 仅当远端版本更高时提示；该版本已被忽略则不再打扰
+					if (getIgnoredVersion() === remoteVersion) {
+						console.log('[更新检测] 版本 ' + remoteVersion + ' 已被忽略');
+						return;
+					}
+					console.log('[更新检测] 检测到新版本：' + remoteVersion + '（当前 ' + APP_CONFIG.version + '）');
+					showUpdateModal(remoteVersion, releaseUrl, releaseNotes);
+				} else {
+					console.log('一致');
+				}
+			} catch (e) { /* 网络错误静默处理，不影响正常使用 */ }
 		}
 		function showUpdateModal(remoteVersion, releaseUrl, releaseNotes) {
 			const modal = document.getElementById('update-modal');
@@ -752,7 +814,7 @@
 			document.getElementById('update-remote-version').textContent = remoteVersion;
 			document.getElementById('update-current-version').textContent = APP_CONFIG.version;
 			const link = document.getElementById('update-release-link');
-			if (link) link.href = releaseUrl;
+			if (link) link.href = releaseUrl || UPDATE_REPO_HOME;
 			const notesEl = document.getElementById('update-release-notes');
 			if (notesEl) notesEl.textContent = releaseNotes ? releaseNotes.slice(0, 500) + (releaseNotes.length > 500 ? '...' : '') : '';
 			modal.classList.add('active');
@@ -760,6 +822,19 @@
 		function closeUpdateModal() {
 			const modal = document.getElementById('update-modal');
 			if (modal) modal.classList.remove('active');
+		}
+		/**「去更新」：在新标签页打开发行版下载页 */
+		function goToUpdate() {
+			const link = document.getElementById('update-release-link');
+			const url = (link && link.href && link.href !== '#') ? link.href : UPDATE_REPO_HOME;
+			try { window.open(url, '_blank', 'noopener'); } catch (e) { location.href = url; }
+			closeUpdateModal();
+		}
+		/**「忽略此版本」：记录版本号，之后不再提示该版本 */
+		function ignoreUpdateVersion() {
+			const vEl = document.getElementById('update-remote-version');
+			try { localStorage.setItem(IGNORE_KEY, (vEl && vEl.textContent) || ''); } catch (e) {}
+			closeUpdateModal();
 		}
 
 		async function saveClassSettings() {
@@ -1332,6 +1407,19 @@
 			});
 		}
 
+		/* ----- 事件 target 安全访问 -----
+		   focus / mousedown / click 的 target 并不总是元素节点：
+		   窗口切换、焦点落空时 target 可能是 document / window，
+		   此时 classList 为 undefined，直接 .contains() 会抛 TypeError。 */
+		function hasAnyClass(el, classNames) {
+			if (!el || !el.classList || typeof el.classList.contains !== 'function') return false;
+			return classNames.some(function (c) { return el.classList.contains(c); });
+		}
+		function safeClosest(el, selector) {
+			if (!el || typeof el.closest !== 'function') return null;
+			return el.closest(selector);
+		}
+
 		function bindDomEvents() {
 			$$('.subject-item').forEach(item => {
 				item.addEventListener('click', () => switchSubject(item.dataset.subject));
@@ -1343,19 +1431,20 @@
 			bindModalBackdropClose(document.getElementById('export-modal'), closeExportDialog);
 
 			document.addEventListener('click', (event) => {
-				if (event.target.classList.contains('tab-btn')) {
-					const tab = event.target.dataset.tab;
-					switchTab(tab);
+				// 用 closest 兼容点到按钮内部 <i> 图标的情况
+				const tabBtn = safeClosest(event.target, '.tab-btn');
+				if (tabBtn) {
+					switchTab(tabBtn.dataset.tab);
 				}
 			});
 
 			document.addEventListener('focus', (e) => {
-				if (e.target.classList.contains('homework-content') || e.target.classList.contains('submit-time') || e.target.classList.contains('estimated-time')) {
+				if (hasAnyClass(e.target, ['homework-content', 'submit-time', 'estimated-time'])) {
 					activeInput = e.target;
 				}
 			}, true);
 			document.addEventListener('mousedown', (e) => {
-				if (e.target.classList.contains('homework-content') || e.target.classList.contains('submit-time') || e.target.classList.contains('estimated-time')) {
+				if (hasAnyClass(e.target, ['homework-content', 'submit-time', 'estimated-time'])) {
 					activeInput = e.target;
 				}
 			}, true);
@@ -1687,7 +1776,7 @@
 			const exportContent = document.createElement('div');
 			exportContent.style.backgroundColor = '#ffffff';
 			exportContent.style.color = '#000000';
-			exportContent.style.fontFamily = "'Microsoft YaHei', '微软雅黑', sans-serif";
+			exportContent.style.fontFamily = "'SimSun', '宋体', sans-serif";
 			exportContent.style.fontSize = `${classSettings.exportFontSize}px`;
 			exportContent.style.lineHeight = '1';
 			exportContent.style.textAlign = 'left';
