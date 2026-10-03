@@ -7,7 +7,9 @@
 	<script src="https://fastly.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 	<script src="https://fastly.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 	<script src="https://fastly.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<!-- crossorigin="anonymous"：以 CORS 模式加载，使 cssRules 可访问，
+	     否则 html2canvas 克隆文档读取该跨域样式表时会抛 DOMException（控制台报错，导出仍会成功） -->
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
 	<link rel="stylesheet" href="style.css">
 </head>
 <body class="preview-mode-active" data-theme="dark">
@@ -51,7 +53,7 @@
 		<div class="main-content" id="main-content">
 			<!-- 预览模式 -->
 		<div class="preview-mode" id="preview-mode" style="display: flex;">
-			<div class="preview-subjects" id="preview-subjects"><div style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 0); font-family: &quot;Microsoft YaHei&quot;, 微软雅黑, sans-serif; font-size: 30px; line-height: 1; text-align: left; position: relative;"><div style="font-size: 33px; margin-bottom: 9px; text-align: left;">班级作业 <span style="font-size: 24px; font-weight: normal; color: #666666;">2026-08-30</span></div><div style="text-align: left; font-size: 30px; line-height: 1;"></div></div></div>
+			<div class="preview-subjects" id="preview-subjects"><div style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 0); font-family: &quot;SimSun&quot;, 宋体, sans-serif; font-size: 30px; line-height: 1; text-align: left; position: relative;"><div style="font-size: 33px; margin-bottom: 9px; text-align: left;">班级作业 <span style="font-size: 24px; font-weight: normal; color: #666666;">2026-08-30</span></div><div style="text-align: left; font-size: 30px; line-height: 1;"></div></div></div>
 		</div>
 
 		<!-- 编辑模式 -->
@@ -260,7 +262,7 @@
 	<div id="update-modal" class="modal">
 		<div class="modal-content" style="max-width: 480px;">
 			<div class="modal-header">
-				<h2 class="modal-title"><i class="fa-solid fa-bell"></i>发现新版本</h2>
+				<h2 class="modal-title"><i class="fa-solid fa-bell"></i>检测到新版本，请更新</h2>
 				<button type="button" class="close-modal" onclick="closeUpdateModal()" aria-label="关闭"><i class="fa-solid fa-xmark"></i></button>
 			</div>
 			<div class="modal-body">
@@ -274,9 +276,11 @@
 					<div>若 GitHub 访问缓慢或无法打开，可使用备用网址下载：</div>
 					<a href="https://gitee.com/homework_manager/homework-manager" target="_blank" rel="noopener" style="color: #4F46E5; word-break: break-all;">gitee.com/homework_manager/homework-manager</a>
 	 			</div>
-				<div style="display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end;">
-					<button class="btn btn-secondary" onclick="closeUpdateModal()">暂不更新</button>
-					<a id="update-release-link" href="#" target="_blank" class="btn btn-success" style="text-decoration: none; display: inline-block;">前往下载</a>
+				<div style="display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; flex-wrap: wrap;">
+					<button class="btn btn-secondary" onclick="ignoreUpdateVersion()" title="之后不再提示此版本的更新">忽略此版本</button>
+					<button class="btn btn-secondary" onclick="closeUpdateModal()" title="下次打开页面时再次提醒">稍后更新</button>
+					<button class="btn btn-success" onclick="goToUpdate()"><i class="fa-solid fa-download"></i> 去更新</button>
+					<a id="update-release-link" href="#" target="_blank" rel="noopener" style="display: none;"></a>
 				</div>
 			</div>
 		</div>

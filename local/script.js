@@ -44,19 +44,9 @@
 		elements.init();
 
 		const APP_CONFIG = {
-			"appName": "作业管理器（课堂端）",
-			"version": "v3.1.0",
-			"maxBoundClasses": 1,
-			"bindTip": "课堂端仅允许绑定 1 个云班级，如需绑定新班级，请先移除绑定的班级。",
-			"bindLimitAlert": "课堂端仅允许绑定 1 个云班级。如需绑定新班级，请先移除绑定的班级。"
+			"appName": "作业管理器（本地）",
+			"version": "v3.1.0"
 		};
-
-		function isBindingLimitReached(nextBindCode) {
-			const max = APP_CONFIG.maxBoundClasses;
-			if (max == null) return false;
-			if (boundClass && boundClass.bindCode === nextBindCode) return false;
-			return boundClass !== null;
-		}
 
 		function showLoadingOverlay(text = '加载中...') {
 			const overlay = document.getElementById('loading-overlay');
@@ -72,8 +62,6 @@
 
 		function applyVariantUI() {
 			document.title = APP_CONFIG.appName;
-			const tip = document.getElementById('bind-limit-tip');
-			if (tip) tip.textContent = APP_CONFIG.bindTip || '';
 		}
 
 		const subjects = [
@@ -87,8 +75,7 @@
 		};
 
 		const DEFAULT_CLASS_SETTINGS = {
-			className: "未绑定",
-			bindCode: "无",
+			className: "我的班级",
 			exportTitle: "班级作业",
 			exportAddDate: true,
 			exportFontSize: 30,
@@ -102,112 +89,14 @@
 		let activeInput = null;
 		let homeworkData = {};
 
-		let supabaseClient = null;
-		let boundClass = null;
-		let currentClassBindCode = null;
-		let sbRealtimeChannel = null;
-
-		/* ==================== 云端作业变更冲突检测 ==================== */
-		let cloudHomeworkSignature = null;   // 最近一次已知的云端作业数据指纹
-		let cloudConflictPending = false;    // 编辑作业期间收到云端变更且尚未处理
-
-		// 生成与科目/字段顺序无关的作业数据指纹，用于判断云端作业是否被改动
-		function homeworkSignature(rawHw) {
-			const src = rawHw || {};
-			const out = {};
-			subjects.forEach(subject => {
-				if (subject === "全部") return;
-				const item = src[subject] || {};
-				const list = Array.isArray(item.homeworks) ? item.homeworks : [];
-				out[subject] = list.map(hw => [
-					String((hw && hw.content) || ""),
-					String((hw && hw.estimatedTime) || ""),
-					String((hw && hw.submitTime) || ""),
-					(hw && hw.locked) ? 1 : 0
-				]);
-			});
-			return JSON.stringify(out);
-		}
-
-		// 是否正处于作业编辑状态（“全部”为预览模式，不算编辑）
-		function isHomeworkEditing() {
-			return !!currentSubject && currentSubject !== "全部"
-				&& elements.editMode && elements.editMode.style.display !== 'none';
-		}
-
-		function showCloudConflictWarning() {
-			cloudConflictPending = true;
-			const modal = document.getElementById('cloud-conflict-modal');
-			if (modal) modal.classList.add('active');
-		}
-
-		function closeCloudConflictWarning() {
-			const modal = document.getElementById('cloud-conflict-modal');
-			if (modal) modal.classList.remove('active');
-		}
-
-		function refreshAfterCloudConflict() {
-			window.location.reload();
-		}
-
-		/* ==================== 上传前的最后一次云端校验 ====================
-		   实时推送与轮询都可能漏掉变更，所以在真正写云端之前再取一次数据比对：
-		   若云端作业已被改动，就中止本次上传，交给用户决定是否覆盖。 */
-		let pendingSaveRetry = null;   // 「仍然覆盖保存」要重跑的动作
-
-		async function verifyCloudBeforeUpload() {
-			// 未配置云端时保持原有行为（uploadHomeworkToSb 自己会直接返回），不要拦在这里
-			if (!ensureSupabase()) return { ok: true, row: undefined };
-			const row = await fetchSbRow(currentClassBindCode);
-			if (lastSbError) return { ok: false, readFailed: true, row: undefined };
-			const incomingSig = homeworkSignature((row && row.homework_data) || {});
-			if (cloudHomeworkSignature != null && incomingSig !== cloudHomeworkSignature) {
-				return { ok: false, readFailed: false, row };
-			}
-			return { ok: true, row };
-		}
-
-		function showSaveConflictWarning(retryAction) {
-			pendingSaveRetry = typeof retryAction === "function" ? retryAction : null;
-			const modal = document.getElementById('save-conflict-modal');
-			if (modal) modal.classList.add('active');
-		}
-
-		function closeSaveConflictWarning() {
-			pendingSaveRetry = null;
-			const modal = document.getElementById('save-conflict-modal');
-			if (modal) modal.classList.remove('active');
-		}
-
-		// 「仍然覆盖保存」：用户已明确确认，重跑刚才被中止的上传
-		function confirmSaveOverwrite() {
-			const act = pendingSaveRetry;
-			pendingSaveRetry = null;
-			const modal = document.getElementById('save-conflict-modal');
-			if (modal) modal.classList.remove('active');
-			closeCloudConflictWarning();
-			cloudConflictPending = false;
-			if (typeof act === "function") act();
-		}
-
-		function refreshAfterSaveConflict() {
-			window.location.reload();
-		}
 
 		const LS_KEYS = {
-			global: "homeworkManagerGlobalSettings",
-			boundClass: "homeworkManagerBoundClass",
-			sbUrl: "homeworkManagerSupabaseUrl",
-			sbKey: "homeworkManagerSupabaseKey"
-		};
-
-		/* 「每日自动删除作业」由云端数据库的定时任务执行（读取 settings.autoDeleteDaily）。
-		   前端只负责把这个开关标记进云端数据，不再在本地执行删除，避免与云端任务冲突。 */
-		function withAutoDeleteMark(settings) {
-			return {
-				...(settings || {}),
-				autoDeleteDaily: !!classSettings.autoDeleteDaily
+				global: "homeworkManagerGlobalSettings",
+				classData: "homeworkManagerClassData"
 			};
+
+		function autoDeleteLastRunKey() {
+			return "homeworkManagerAutoDeleteLastRun";
 		}
 
 		function getLocal(key, fallback) {
@@ -220,65 +109,47 @@
 			localStorage.setItem(key, JSON.stringify(value));
 		}
 
-		function getSbCreds() {
-			return {
-				url: localStorage.getItem(LS_KEYS.sbUrl) || "",
-				key: localStorage.getItem(LS_KEYS.sbKey) || ""
-			};
+		/* ==================== 本地数据存储层（单班级） ====================
+		本地仅维护一个班级：班级设置 / 作业内容 / 公告 全部保存在 localStorage，
+		无需绑定码、无需联网。 */
+
+		function fetchClassRow() {
+			const row = getLocal(LS_KEYS.classData, null);
+			return row && typeof row === "object" ? row : null;
 		}
 
-		function ensureSupabase() {
-			const { url, key } = getSbCreds();
-			if (!url || !key) { supabaseClient = null; return null; }
-			if (typeof supabase === "undefined" || typeof supabase.createClient !== "function") { supabaseClient = null; return null; }
-			if (!supabaseClient || supabaseClient._url !== url || supabaseClient._key !== key) {
-				supabaseClient = supabase.createClient(url, key);
-			}
-			return supabaseClient;
-		}
-
-		function hasSbCreds() {
-			const { url, key } = getSbCreds();
-			return !!url && !!key;
-		}
-
-		async function classExists(bindCode) {
-			const client = ensureSupabase();
-			if (!client) return false;
-			const { data, error } = await client.from("class_data").select("id").eq("bind_code", bindCode).limit(1);
-			if (error) return false;
-			return !!(data && data.length > 0);
-		}
-
-		// 最近一次 Supabase 读写失败的原因（成功则清空）：用于区分「读不到」与「该班级云端还没有行」
-		let lastSbError = null;
-
-		async function fetchSbRow(bindCode) {
-			const client = ensureSupabase();
-			if (!client) { lastSbError = "未配置 Supabase 连接（请检查项目地址与接口密钥）"; return null; }
-			const { data, error } = await client.from("class_data").select("*").eq("bind_code", bindCode).limit(1);
-			if (error) { lastSbError = error.message || String(error); return null; }
-			lastSbError = null;
-			return data && data.length ? data[0] : null;
-		}
-
-		async function upsertSbRow(row) {
-			const client = ensureSupabase();
-			if (!client) { lastSbError = "未配置 Supabase 连接（请检查项目地址与接口密钥）"; return null; }
-			const { data, error } = await client.from("class_data").upsert(row, { onConflict: "bind_code" }).select();
-			if (error) { lastSbError = error.message || String(error); console.error("upsertSbRow error", error); return null; }
-			lastSbError = null;
-			return data && data.length ? data[0] : null;
-		}
-
-		async function fetchClassSettings(bindCode) {
-			if (!bindCode) return {...DEFAULT_CLASS_SETTINGS};
-			const row = await fetchSbRow(bindCode);
+		function saveClassRow(row) {
 			if (!row) return null;
+			row.updated_at = new Date().toISOString();
+			setLocal(LS_KEYS.classData, row);
+			return row;
+		}
+
+		/* 迁移：旧版按绑定码分班的数据，自动搬进单班级存储槽 */
+		function migrateLegacyClassData() {
+			if (getLocal(LS_KEYS.classData, null)) return;
+			const prefix = LS_KEYS.classData + "_";
+			let legacy = null;
+			try {
+				for (let i = 0; i < localStorage.length; i++) {
+					const k = localStorage.key(i);
+					if (k && k.indexOf(prefix) === 0) {
+						const v = getLocal(k, null);
+						if (v && typeof v === "object" && (v.homework_data || v.settings || v.class_name)) { legacy = v; break; }
+					}
+				}
+			} catch (e) { /* ignore */ }
+			if (!legacy) return;
+			delete legacy.bind_code;
+			setLocal(LS_KEYS.classData, legacy);
+		}
+
+		function fetchClassSettings() {
+			const row = fetchClassRow();
+			if (!row) return {...DEFAULT_CLASS_SETTINGS};
 			const s = row.settings || {};
 			return {
-				className: row.class_name || (s.className || "班级"),
-				bindCode: row.bind_code,
+				className: row.class_name || (s.className || DEFAULT_CLASS_SETTINGS.className),
 				exportTitle: s.exportTitle ?? DEFAULT_CLASS_SETTINGS.exportTitle,
 				exportAddDate: s.exportAddDate ?? DEFAULT_CLASS_SETTINGS.exportAddDate,
 				exportFontSize: s.exportFontSize ?? DEFAULT_CLASS_SETTINGS.exportFontSize,
@@ -286,26 +157,6 @@
 			};
 		}
 
-		async function saveClassSettingsToStore(s) {
-			if (!currentClassBindCode) return false;
-			const row = await fetchSbRow(currentClassBindCode);
-			const newRow = {
-				bind_code: currentClassBindCode,
-				class_name: s.className || "班级",
-				settings: {
-					...((row && row.settings) || {}),
-					exportTitle: s.exportTitle,
-					exportAddDate: !!s.exportAddDate,
-					exportFontSize: Number(s.exportFontSize) || DEFAULT_CLASS_SETTINGS.exportFontSize,
-					autoDeleteDaily: !!s.autoDeleteDaily
-				},
-				homework_data: (row && row.homework_data) || {},
-				announcement: (row && row.announcement) || [],
-				updated_at: new Date().toISOString()
-			};
-			const res = await upsertSbRow(newRow);
-			return !!res;
-		}
 
 		function loadGlobalSettings() {
 			const g = getLocal(LS_KEYS.global, null);
@@ -315,68 +166,13 @@
 			setLocal(LS_KEYS.global, globalSettings);
 		}
 
-		function loadBoundClass() {
-			boundClass = getLocal(LS_KEYS.boundClass, null);
-		}
-		function saveBoundClass() {
-			setLocal(LS_KEYS.boundClass, boundClass);
-		}
-
-		function refreshClassUI() {
-			refreshSubjectItemsState();
-		}
-
-		// 同步科目按钮和公告编辑按钮禁用状态（无绑定班级时禁用）
-		function refreshSubjectItemsState() {
-			const disabled = !currentClassBindCode;
-			$$('.subject-item').forEach(item => {
-				if (item.dataset.subject === '全部') return;
-				item.classList.toggle('disabled', disabled);
-			});
-			const editBtn = document.querySelector('.btn-warning[onclick="editAnnouncement()"]');
-			if (editBtn) editBtn.classList.toggle('disabled', disabled);
-		}
-
-		async function bindNewClass(bindCode) {
-			bindCode = (bindCode || "").trim().toUpperCase();
-			if (!bindCode) { alert("请输入绑定码"); return false; }
-			if (!ensureSupabase()) { alert("请检查项目地址和接口密钥"); return false; }
-			if (isBindingLimitReached(bindCode)) { alert(APP_CONFIG.bindLimitAlert); return false; }
-			const exists = await classExists(bindCode);
-			if (!exists) { alert("绑定码无效"); return false; }
-			if (!boundClass || boundClass.bindCode !== bindCode) {
-				const row = await fetchSbRow(bindCode);
-				boundClass = {
-					bindCode,
-					className: (row && row.class_name) || ("班级-" + bindCode)
-				};
-				saveBoundClass();
-			}
-			currentClassBindCode = bindCode;
-			refreshClassUI();
-			await applyCurrentClass(true);
-			return true;
-		}
-
-		async function removeBoundClass(bindCode) {
-			if (boundClass && boundClass.bindCode === bindCode) {
-				boundClass = null;
-				saveBoundClass();
-			}
-			if (currentClassBindCode === bindCode) {
-				currentClassBindCode = null;
-			}
-			refreshClassUI();
-			renderBoundClassesUI();
-			updateClassSettingsUI();
-			await applyCurrentClass(true);
-		}
-
 		async function applyCurrentClass(reloadHomework) {
-			const s = await fetchClassSettings(currentClassBindCode);
+			const s = fetchClassSettings();
 			if (s) classSettings = {...DEFAULT_CLASS_SETTINGS, ...s};
 			if (reloadHomework) await reloadHomeworkForCurrentClass();
-			// 每日自动删除作业已由云端数据库定时任务负责，本地不再执行
+			if (reloadHomework) {
+				await runDailyAutoDeleteIfNeeded();
+			}
 			updatePreview();
 			updateClassSettingsUI();
 			const contentDiv = document.getElementById('announcement-content');
@@ -387,17 +183,8 @@
 		}
 
 		async function reloadHomeworkForCurrentClass() {
-			unsubscribeRealtime();
 			initHomeworkData();
-			cloudConflictPending = false;
-			closeCloudConflictWarning();
-			stopEditModeCloudWatch();
-			if (!currentClassBindCode) {
-				cloudHomeworkSignature = null;
-				ensureHomeworkLockedProperty();
-				return;
-			}
-			const row = await fetchSbRow(currentClassBindCode);
+			const row = fetchClassRow();
 			const hw = (row && row.homework_data) || {};
 			subjects.forEach(subject => {
 				if (subject !== "全部") {
@@ -406,201 +193,63 @@
 				}
 			});
 			ensureHomeworkLockedProperty();
-			// 记录本次读取到的云端作业基线
-			cloudHomeworkSignature = homeworkSignature(hw);
-			setupRealtime();
 		}
 
-		/* prefetchedRow：上传前校验时刚取回的行，直接复用可省一次读取，也保证「最后一次读到的
-		   云端数据」就是写入时所依据的版本；传 undefined 表示未校验过，函数内部自行读取。 */
-		async function uploadHomeworkToSb(prefetchedRow) {
-			// 调用方可能已拉起「正在校验云端数据...」遮罩，提前退出时要顺手关掉，否则会一直盖在页面上
-			if (!currentClassBindCode) { hideLoadingOverlay(); return; }
-			const client = ensureSupabase();
-			if (!client) { hideLoadingOverlay(); return; }
-			showLoadingOverlay('正在上传...');
-			try {
-				const row = prefetchedRow === undefined ? await fetchSbRow(currentClassBindCode) : prefetchedRow;
-				const newRow = {
-					bind_code: currentClassBindCode,
-					class_name: classSettings.className || (row && row.class_name) || "班级",
-					settings: withAutoDeleteMark(row && row.settings),
-					homework_data: homeworkData,
-					announcement: (row && row.announcement) || [],
-					updated_at: new Date().toISOString()
-				};
-				// 先更新本地基线，避免自己写入后回传的事件被当作“云端变更”而误报
-				cloudHomeworkSignature = homeworkSignature(homeworkData);
-				cloudConflictPending = false;
-				closeCloudConflictWarning();
-				await upsertSbRow(newRow);
-			} finally {
-				hideLoadingOverlay();
-			}
+		/* 把当前班级的全部数据写入本地存储 */
+		async function saveClassData() {
+			const row = fetchClassRow();
+			saveClassRow({
+				class_name: classSettings.className || (row && row.class_name) || DEFAULT_CLASS_SETTINGS.className,
+				settings: {
+					...((row && row.settings) || {}),
+					exportTitle: classSettings.exportTitle,
+					exportAddDate: !!classSettings.exportAddDate,
+					exportFontSize: Number(classSettings.exportFontSize) || DEFAULT_CLASS_SETTINGS.exportFontSize,
+					autoDeleteDaily: !!classSettings.autoDeleteDaily
+				},
+				homework_data: homeworkData,
+				announcement: (row && row.announcement) || [],
+				updated_at: new Date().toISOString()
+			});
+			refreshEveningStudy();
 		}
 
-		function setupRealtime() {
-			unsubscribeRealtime();
-			if (!currentClassBindCode) return;
-			const client = ensureSupabase();
-			if (!client) return;
-			try {
-				sbRealtimeChannel = client.channel("class_data_changes")
-					.on("postgres_changes",
-						{ event: "UPDATE", schema: "public", table: "class_data", filter: `bind_code=eq.${currentClassBindCode}` },
-						(payload) => {
-							try {
-								const row = payload.new || {};
-								if (row.class_name) classSettings.className = row.class_name;
-								const s = row.settings || {};
-								if (s.exportTitle != null) classSettings.exportTitle = s.exportTitle;
-								if (s.exportAddDate != null) classSettings.exportAddDate = !!s.exportAddDate;
-								if (s.exportFontSize != null) classSettings.exportFontSize = Number(s.exportFontSize) || DEFAULT_CLASS_SETTINGS.exportFontSize;
-								if (s.autoDeleteDaily != null) classSettings.autoDeleteDaily = !!s.autoDeleteDaily;
+		/* ==================== 本地自动保存 ==================== */
+		let autoSaveTimer = null;
 
-								const hwProvided = Object.prototype.hasOwnProperty.call(row, "homework_data");
-								const hw = row.homework_data || {};
-								const incomingSig = hwProvided ? homeworkSignature(hw) : null;
-								const hwChanged = hwProvided && incomingSig !== cloudHomeworkSignature;
-
-								/* 正在编辑作业时收到云端作业变更：不覆盖本地编辑内容，仅弹出警告 */
-								if (hwChanged && isHomeworkEditing()) {
-									cloudHomeworkSignature = incomingSig;
-									showCloudConflictWarning();
-									return;
-								}
-
-								if (hwProvided) {
-									cloudHomeworkSignature = incomingSig;
-									subjects.forEach(subject => {
-										if (subject !== "全部") {
-											homeworkData[subject] = hw[subject] || { homeworks: [] };
-											if (!homeworkData[subject].homeworks) homeworkData[subject].homeworks = [];
-										}
-									});
-									ensureHomeworkLockedProperty();
-								}
-							updateClassSettingsUI();
-							if (currentSubject === "全部") {
-							updatePreview();
-							const items = parseAnnouncement(row.announcement);
-							const contentDiv = document.getElementById('announcement-content');
-							const editorDiv = document.getElementById('announcement-editor');
-							if (contentDiv && (!editorDiv || editorDiv.style.display !== 'block')) {
-								renderAnnouncementContent(items);
-							}
-						} else if (hwChanged) {
-							updateHomeworkList();
-						}
-						refreshEveningStudy();
-							} catch (e) { console.error("realtime apply error", e); }
-						})
-					.subscribe();
-			} catch (e) { console.warn("realtime init failed", e); }
+		/* 合并短时间内的连续改动，避免频繁写 localStorage */
+		function scheduleAutoSave() {
+			if (autoSaveTimer) clearTimeout(autoSaveTimer);
+			autoSaveTimer = setTimeout(() => { autoSaveTimer = null; saveClassData(); }, 400);
 		}
 
-		function unsubscribeRealtime() {
-			if (sbRealtimeChannel) {
-				try { sbRealtimeChannel.unsubscribe(); } catch (e) {}
-				sbRealtimeChannel = null;
-			}
+		/* 立即落盘（改动确认、离开页面时调用） */
+		function flushAutoSave() {
+			if (autoSaveTimer) { clearTimeout(autoSaveTimer); autoSaveTimer = null; }
+			saveClassData();
 		}
 
-		/* 编辑作业期间必须保持实时订阅，否则收不到云端变更、冲突提示永远不会出现。
-		   仅在尚未订阅时建立连接，已订阅则直接复用，避免重新加入频道造成监听空窗。 */
-		function ensureRealtime() {
-			if (!currentClassBindCode) return;
-			if (sbRealtimeChannel) return;
-			setupRealtime();
-		}
-
-		/* 编辑期间的兜底检测：Realtime 偶发断连或事件丢失时靠轮询发现云端作业变更。
-		   只做“发现并告警”，绝不覆盖本地正在编辑的内容。 */
-		let editWatchTimer = null;
-
-		function stopEditModeCloudWatch() {
-			if (editWatchTimer) { clearInterval(editWatchTimer); editWatchTimer = null; }
-		}
-
-		// 单次兜底检查：云端作业与本地基线不一致即告警
-		async function runEditCloudCheck() {
-			if (!currentClassBindCode || !isHomeworkEditing()) return;
-			try {
-				const row = await fetchSbRow(currentClassBindCode);
-				if (!row || !row.homework_data) return;
-				const sig = homeworkSignature(row.homework_data);
-				if (sig === cloudHomeworkSignature) return;
-				cloudHomeworkSignature = sig;
-				showCloudConflictWarning();
-			} catch (e) { console.error("edit cloud watch error", e); }
-		}
-
-		function startEditModeCloudWatch() {
-			stopEditModeCloudWatch();
-			if (!currentClassBindCode) return;
-			editWatchTimer = setInterval(runEditCloudCheck, 20000);
-		}
-
-		function fallbackCopy(text, onSuccess) {
-			const ta = document.createElement("textarea");
-			ta.value = text;
-			document.body.appendChild(ta);
-			ta.select();
-			try { document.execCommand("copy"); if (onSuccess) onSuccess(); } catch (e) {}
-			document.body.removeChild(ta);
-		}
-		function copyText(text, btnEl, successText = '复制成功') {
-			const origText = btnEl ? btnEl.innerHTML : "";
-			const flash = () => {
-				if (btnEl) btnEl.innerHTML = successText;
-				setTimeout(() => { if (btnEl) btnEl.innerHTML = origText; }, 1000);
+		/* ==================== 班级设置：改动即存 ==================== */
+		/* 从表单读取班级设置（已去掉「保存」按钮，改动即写入本地） */
+		function readClassSettingsFromUI() {
+			const etEl = document.getElementById("cls-export-title");
+			const efEl = document.getElementById("cls-export-font-size");
+			const eaEl = document.getElementById("cls-export-add-date");
+			const adEl = document.getElementById("cls-auto-delete-daily");
+			return {
+				exportTitle: (etEl && etEl.value.trim()) || "作业",
+				exportFontSize: parseInt(efEl && efEl.value) || DEFAULT_CLASS_SETTINGS.exportFontSize,
+				exportAddDate: !!(eaEl && eaEl.checked),
+				autoDeleteDaily: !!(adEl && adEl.checked)
 			};
-			if (navigator.clipboard && navigator.clipboard.writeText) {
-				navigator.clipboard.writeText(text).then(flash).catch(() => fallbackCopy(text, flash));
-			} else {
-				fallbackCopy(text, flash);
-			}
-		}
-		function copyCurrentBindCode(btnEl) {
-			const code = classSettings.bindCode || "无";
-			if (code === "无") return;
-			copyText(code, btnEl, '复制成功');
 		}
 
-		function renderBoundClassesUI() {
-			const grid = document.getElementById("bound-class-grid");
-			if (!grid) return;
-			grid.innerHTML = "";
-			if (boundClass) {
-				const card = document.createElement("div");
-				card.className = "bound-class-card";
-
-				const name = document.createElement("div");
-				name.className = "bc-name";
-				name.textContent = boundClass.className || "班级";
-
-				const codeRow = document.createElement("div");
-				codeRow.className = "bc-code-row";
-
-				const code = document.createElement("span");
-				code.className = "bc-code";
-				code.textContent = boundClass.bindCode;
-
-				const copy = document.createElement("button");
-				copy.className = "bc-copy";
-				copy.title = "复制绑定码";
-				copy.innerHTML = '<i class="fa-solid fa-clipboard-list"></i>';
-				copy.addEventListener("click", () => copyText(boundClass.bindCode, copy, '<i class="fa-solid fa-circle-check"></i>'));
-
-				const del = document.createElement("button");
-				del.className = "bc-delete";
-				del.textContent = "移除绑定";
-				del.addEventListener("click", () => removeBoundClass(boundClass.bindCode));
-
-				codeRow.append(code, copy);
-				card.append(name, codeRow, del);
-				grid.appendChild(card);
-			}
+		/* immediate=true 立即落盘（复选框），否则走防抖（输入框连续输入） */
+		function applyClassSettingsFromUI(immediate) {
+			classSettings = { ...classSettings, ...readClassSettingsFromUI() };
+			updatePreview();
+			if (immediate) flushAutoSave();
+			else scheduleAutoSave();
 		}
 
 		function escapeHtml(s) {
@@ -615,65 +264,21 @@
 			return String(s == null ? "" : s).replace(/[&<>"'`]/g, c => map[c]);
 		}
 
-		window.copyTextInline = function(btnEl, text) {
-			copyText(text, btnEl, '<i class="fa-solid fa-circle-check"></i>');
-		};
-
 		function updateClassSettingsUI() {
-			const nm = document.getElementById("cls-class-name");
-			const bc = document.getElementById("cls-bind-code-box");
 			const et = document.getElementById("cls-export-title");
 			const ef = document.getElementById("cls-export-font-size");
 			const ea = document.getElementById("cls-export-add-date");
 			const ad = document.getElementById("cls-auto-delete-daily");
 
-			if (nm) nm.value = classSettings.className || "未绑定";
 			if (et) et.value = classSettings.exportTitle || "";
 			if (ef) ef.value = classSettings.exportFontSize ?? "";
 			if (ea) ea.checked = !!classSettings.exportAddDate;
 			if (ad) ad.checked = !!classSettings.autoDeleteDaily;
-
-			if (bc) {
-				bc.textContent = classSettings.bindCode || currentClassBindCode || "无";
-			}
-
-			const urlEl = document.getElementById("sb-project-url");
-			const keyEl = document.getElementById("sb-api-key");
-			const { url, key } = getSbCreds();
-			if (urlEl) urlEl.value = url || "";
-			if (keyEl) keyEl.value = key || "";
-			const bound = boundClass !== null;
-			if (urlEl) urlEl.disabled = bound;
-			if (keyEl) keyEl.disabled = bound;
-			renderBoundClassesUI();
 		}
 
 		function openSettings() {
-			ensureSupabase();
 			loadGlobalSettings();
-			loadBoundClass();
-			refreshClassUI();
-			(async () => {
-				await applyCurrentClass(false);
-			})();
-
-			const urlEl = document.getElementById("sb-project-url");
-			const keyEl = document.getElementById("sb-api-key");
-			if (urlEl && !urlEl.dataset.bound) {
-				urlEl.dataset.bound = "1";
-				urlEl.addEventListener("input", function() {
-					localStorage.setItem(LS_KEYS.sbUrl, this.value.trim());
-					ensureSupabase();
-				});
-			}
-			if (keyEl && !keyEl.dataset.bound) {
-				keyEl.dataset.bound = "1";
-				keyEl.addEventListener("input", function() {
-					localStorage.setItem(LS_KEYS.sbKey, this.value.trim());
-					ensureSupabase();
-				});
-			}
-
+			applyCurrentClass(false);
 			updateClassSettingsUI();
 			generateShortcutOptionsList();
 			generateTimeOptionsList();
@@ -682,6 +287,7 @@
 		}
 
 		function closeSettings() {
+			flushAutoSave();          // 关闭设置前把待写入的设置项落盘
 			elements.settingsModal.classList.remove('active');
 		}
 
@@ -795,49 +401,6 @@
 			const vEl = document.getElementById('update-remote-version');
 			try { localStorage.setItem(IGNORE_KEY, (vEl && vEl.textContent) || ''); } catch (e) {}
 			closeUpdateModal();
-		}
-
-		async function saveClassSettings() {
-			const nmEl = document.getElementById("cls-class-name");
-			const etEl = document.getElementById("cls-export-title");
-			const efEl = document.getElementById("cls-export-font-size");
-			const eaEl = document.getElementById("cls-export-add-date");
-			const adEl = document.getElementById("cls-auto-delete-daily");
-
-			const payload = {
-				className: (nmEl && nmEl.value.trim()) || boundClass?.className || "未绑定",
-				bindCode: currentClassBindCode || "无",
-				exportTitle: (etEl && etEl.value.trim()) || "作业",
-				exportFontSize: parseInt(efEl && efEl.value) || DEFAULT_CLASS_SETTINGS.exportFontSize,
-				exportAddDate: !!(eaEl && eaEl.checked),
-				autoDeleteDaily: !!(adEl && adEl.checked)
-			};
-
-			if (!currentClassBindCode) {
-				classSettings = {...payload};
-				alert("请先绑定班级后再保存设置");
-				return;
-			}
-
-			const ok = await saveClassSettingsToStore(payload);
-			if (!ok) { alert("保存失败，请检查 Supabase 配置或网络"); return; }
-			classSettings = {...payload};
-			if (boundClass && boundClass.bindCode === currentClassBindCode) {
-				boundClass.className = payload.className;
-			}
-			saveBoundClass();
-			refreshClassUI();
-			alert("已保存班级设置");
-			updatePreview();
-		}
-
-		async function addClassByBindCode() {
-			const input = document.getElementById("sb-bind-code");
-			const code = (input && input.value) || "";
-			if (!hasSbCreds()) { alert("请先填写项目地址和接口密钥"); return; }
-			const ok = await bindNewClass(code);
-			if (ok && input) input.value = "";
-			renderBoundClassesUI();
 		}
 
 		function generateShortcutOptionsList() {
@@ -1000,43 +563,13 @@
 			checkAndStartScroll();
 		}
 
-		async function switchSubject(subject, options) {
-			const opts = options || {};
-			// 无绑定班级时，仅允许"全部"展示提示，其他科目按钮无效
-			if (!currentClassBindCode && subject !== '全部') return;
-			// 切回“全部”即提交保存：若编辑期间云端作业已被改动，先提醒保存会覆盖云端内容
-			if (subject === "全部" && !opts.skipUpload && cloudConflictPending) {
-				const goOn = confirm('当前班级的云端作业已被修改，继续保存将覆盖云端的最新内容。\n建议先刷新页面查看最新内容后重新编辑。\n\n仍要保存并覆盖吗？');
-				if (!goOn) return;
-				cloudConflictPending = false;
-				closeCloudConflictWarning();
-				opts.overwriteConfirmed = true;   // 用户已明确选择覆盖，下面不再重复校验
-			}
-			// 上传前最后从云端取一次数据：编辑期间云端作业若被改动（实时推送可能丢失），这里兜住
-			let verifiedRow;   // undefined = 未做校验，交给上传函数自己再取一次
-			if (subject === "全部" && !opts.skipUpload && !opts.overwriteConfirmed
-				&& currentClassBindCode && currentSubject !== "全部") {
-				showLoadingOverlay('正在校验云端数据...');
-				const v = await verifyCloudBeforeUpload();
-				if (!v.ok) {
-					hideLoadingOverlay();
-					if (v.readFailed) {
-						alert('无法读取云端数据（' + lastSbError + '），为避免覆盖云端内容，本次上传已取消。\n请检查网络后重试。');
-						return;
-					}
-					// 停留编辑态，等用户在弹窗里选择刷新 / 继续编辑 / 仍然覆盖
-					showSaveConflictWarning(() => switchSubject("全部", { overwriteConfirmed: true }));
-					return;
-				}
-				verifiedRow = v.row;
-			}
+		async function switchSubject(subject) {
 			currentSubject = subject;
 			$$('.subject-item').forEach(item => item.classList.remove('active'));
 			const activeItem = document.querySelector(`.subject-item[data-subject="${subject}"]`);
 			if (activeItem) activeItem.classList.add('active');
 
 			if (subject === "全部") {
-				stopEditModeCloudWatch();
 				// 立刻切换到预览模式
 				document.body.classList.add('preview-mode-active');
 				elements.previewMode.style.display = "flex";
@@ -1052,7 +585,7 @@
 						shortcutSidebar.innerHTML = `
 							<div style="display: flex; justify-content: space-between; align-items: center; font-size: 20px; font-weight: 600; color: #333; flex-wrap: wrap; gap: 8px;">
 								<span>公告</span>
-								<button class="btn btn-warning ${!currentClassBindCode ? 'disabled' : ''}" onclick="editAnnouncement()" style="flex-shrink: 0; white-space: nowrap;">编辑</button>
+								<button class="btn btn-warning" onclick="editAnnouncement()" style="flex-shrink: 0; white-space: nowrap;">编辑</button>
 							</div>
 							<div id="announcement-content" style="font-size: 20px; line-height: 1.2; min-height: 200px;word-wrap: break-word; word-break: break-word; overflow-wrap: break-word; white-space: pre-wrap;"></div>
 							<div id="announcement-editor" style="display: none; margin-top: 12px;"></div>
@@ -1060,33 +593,14 @@
 					}
 				}
 				
-				if (currentClassBindCode) {
-					// 先显示预览内容（保持之前加载的数据）
-					updatePreview();
-					// 加载公告
-					loadAnnouncement().then(items => {
-						renderAnnouncementContent(items);
-					});
-					// 后台异步上传，不阻塞UI
-					if (opts.skipUpload) {
-						// 应用启动/切换班级加载：只读取云端数据，不回写云端
-						unsubscribeRealtime();
-						setupRealtime();
-					} else {
-						uploadHomeworkToSb(verifiedRow).then(() => {
-							unsubscribeRealtime();
-							setupRealtime();
-						});
-					}
-				} else {
-					updatePreview();
-					const items = await loadAnnouncement();
+				updatePreview();
+				// 加载公告
+				loadAnnouncement().then(items => {
 					renderAnnouncementContent(items);
-				}
+				});
+				// 保存班级数据到本地
+				saveClassData();
 			} else {
-				// 进入编辑模式不再断开实时订阅：冲突检测依赖它接收云端变更
-				ensureRealtime();
-				startEditModeCloudWatch();
 				document.body.classList.remove('preview-mode-active');
 				elements.previewMode.style.display = "none";
 				elements.editMode.style.display = "flex";
@@ -1108,11 +622,7 @@
 			showLoadingOverlay('正在加载应用...');
 			initTheme();
 			loadGlobalSettings();
-			loadBoundClass();
-			currentClassBindCode = boundClass ? boundClass.bindCode : null;
-			ensureSupabase();
-
-			refreshClassUI();
+			migrateLegacyClassData();
 			applyVariantUI();
 
 			initHomeworkData();
@@ -1121,7 +631,7 @@
 				try {
 					await applyCurrentClass(true);
 					startImportantDateScroll();
-					await switchSubject("全部", { skipUpload: true });
+					await switchSubject("全部");
 					bindDomEvents();
 					applyVariantUI();
 				} finally {
@@ -1191,11 +701,17 @@
 				}
 			});
 
-			// 监听全屏变化
+// 监听全屏变化
 			document.addEventListener('fullscreenchange', () => {
 				if (!document.fullscreenElement && eveningStudyActive) {
 					exitEveningStudyMode();
 				}
+			});
+
+			// 离开页面 / 切到后台时，把待写入的改动立即落盘
+			window.addEventListener('beforeunload', flushAutoSave);
+			document.addEventListener('visibilitychange', () => {
+				if (document.visibilityState === 'hidden') flushAutoSave();
 			});
 
 		}
@@ -1208,6 +724,25 @@
 		}
 
 		init();
+
+		function todayKey() {
+			const d = new Date();
+			return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+		}
+
+		async function runDailyAutoDeleteIfNeeded() {
+			const enabled = !!classSettings.autoDeleteDaily;
+			if (!enabled) return;
+			const today = todayKey();
+			const lastRun = localStorage.getItem(autoDeleteLastRunKey());
+			if (lastRun === today) return;
+			subjects.forEach(subject => {
+				if (subject === "全部" || !homeworkData[subject]) return;
+				homeworkData[subject].homeworks = homeworkData[subject].homeworks.filter(hw => hw.locked);
+			});
+			localStorage.setItem(autoDeleteLastRunKey(), today);
+			saveClassData();
+		}
 
 		function initHomeworkData() {
 			subjects.forEach(subject => {
@@ -1225,9 +760,8 @@
 		}
 
 		async function loadAnnouncement() {
-			if (!currentClassBindCode) return [];
 			try {
-				const row = await fetchSbRow(currentClassBindCode);
+				const row = fetchClassRow();
 				return parseAnnouncement(row && row.announcement);
 			} catch (e) {
 				return [];
@@ -1261,16 +795,16 @@
 			footer.className = 'ann-edit-footer';
 			const addBtn = document.createElement('button');
 			addBtn.className = 'btn btn-success';
-			addBtn.textContent = '+ 添加公告';
+			addBtn.innerHTML = '<i class="fa-solid fa-plus"></i> 添加公告';
 			addBtn.onclick = addAnnouncementItem;
 			const btnGroup = document.createElement('div');
 			const doneBtn = document.createElement('button');
 			doneBtn.className = 'btn btn-success';
-			doneBtn.textContent = '完成';
+			doneBtn.innerHTML = '<i class="fa-solid fa-circle-check"></i> 完成';
 			doneBtn.onclick = saveAnnouncement;
 			const cancelBtn = document.createElement('button');
 			cancelBtn.className = 'btn btn-danger';
-			cancelBtn.textContent = '取消';
+			cancelBtn.innerHTML = '<i class="fa-solid fa-xmark"></i> 取消';
 			cancelBtn.onclick = cancelEditAnnouncement;
 			btnGroup.appendChild(doneBtn);
 			btnGroup.appendChild(cancelBtn);
@@ -1289,7 +823,7 @@
 			ta.value = text || '';
 			const delBtn = document.createElement('button');
 			delBtn.className = 'btn btn-danger delete-option-btn';
-			delBtn.textContent = '删除';
+			delBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i> 删除';
 			delBtn.onclick = () => deleteAnnouncementItem(delBtn);
 			item.appendChild(ta);
 			item.appendChild(delBtn);
@@ -1327,7 +861,6 @@
 		}
 
 		function editAnnouncement() {
-			if (!currentClassBindCode) return;
 			const contentDiv = document.getElementById('announcement-content');
 			const editorDiv = document.getElementById('announcement-editor');
 			const editButton = document.querySelector('.btn-warning[onclick="editAnnouncement()"]');
@@ -1356,21 +889,15 @@
 			if (editorDiv) editorDiv.style.display = 'none';
 			if (editButton) editButton.style.display = 'block';
 
-			// 后台异步保存
-			if (!currentClassBindCode) return;
-			const client = ensureSupabase();
-			if (client) {
-				fetchSbRow(currentClassBindCode).then(row => {
-					upsertSbRow({
-						bind_code: currentClassBindCode,
-						class_name: (row && row.class_name) || classSettings.className,
-						settings: withAutoDeleteMark(row && row.settings),
-						homework_data: (row && row.homework_data) || {},
-						announcement: items,
-						updated_at: new Date().toISOString()
-					});
-				});
-			}
+			// 保存到本地
+			const row = fetchClassRow();
+			saveClassRow({
+				class_name: (row && row.class_name) || classSettings.className,
+				settings: (row && row.settings) || {},
+				homework_data: (row && row.homework_data) || {},
+				announcement: items,
+				updated_at: new Date().toISOString()
+			});
 		}
 
 		function cancelEditAnnouncement() {
@@ -1415,17 +942,21 @@
 
 		function updateHomeworkContent(index, content) {
 			homeworkData[currentSubject].homeworks[index].content = content;
+			scheduleAutoSave();
 		}
 		function updateHomeworkSubmitTime(index, submitTime) {
 			homeworkData[currentSubject].homeworks[index].submitTime = submitTime;
+			scheduleAutoSave();
 		}
 		function updateHomeworkEstimatedTime(index, estimatedTime) {
 			homeworkData[currentSubject].homeworks[index].estimatedTime = estimatedTime;
+			scheduleAutoSave();
 		}
 		function moveHomeworkUp(index) {
 			if (index > 0) {
 				const hw = homeworkData[currentSubject].homeworks;
 				[hw[index], hw[index - 1]] = [hw[index - 1], hw[index]];
+				scheduleAutoSave();
 				updateHomeworkList();
 			}
 		}
@@ -1433,12 +964,14 @@
 			const hw = homeworkData[currentSubject].homeworks;
 			if (index < hw.length - 1) {
 				[hw[index], hw[index + 1]] = [hw[index + 1], hw[index]];
+				scheduleAutoSave();
 				updateHomeworkList();
 			}
 		}
 		function toggleHomeworkLock(index) {
 			const hw = homeworkData[currentSubject].homeworks[index];
 			hw.locked = !hw.locked;
+			scheduleAutoSave();
 			updateHomeworkList();
 		}
 
@@ -1474,6 +1007,7 @@
 						const idx = parseInt(input.dataset.index);
 						homeworkData[currentSubject].homeworks[idx].submitTime = option;
 						input.value = option;
+						scheduleAutoSave();
 						dropdown.style.display = 'none';
 					};
 					dropdown.appendChild(el);
@@ -1491,6 +1025,7 @@
 
 		function addHomework() {
 			homeworkData[currentSubject].homeworks.push({ content: "", estimatedTime: "", submitTime: "", locked: false });
+			scheduleAutoSave();
 			updateHomeworkList();
 			const items = elements.homeworkList.querySelectorAll('.homework-item');
 			const last = items[items.length - 1];
@@ -1509,6 +1044,7 @@
 			if (item) item.classList.add('fade-out');
 			setTimeout(() => {
 				homeworkData[currentSubject].homeworks.splice(index, 1);
+				scheduleAutoSave();
 				updateHomeworkList();
 			}, 300);
 		}
@@ -1635,15 +1171,23 @@
 		}
 
 		// 更新预览
+		function hasAnyHomework() {
+			return subjects.some(subject => {
+				if (subject === "全部" || !homeworkData[subject] || !homeworkData[subject].homeworks) return false;
+				return homeworkData[subject].homeworks.some(hw => hw.content && hw.content.trim() !== "");
+			});
+		}
+
+		// 更新预览
 		function updatePreview() {
 			elements.previewSubjects.innerHTML = '';
 
-			if (!currentClassBindCode) {
+			if (!hasAnyHomework()) {
 				const tip = document.createElement('div');
 				tip.className = 'preview-empty';
-				tip.innerHTML = '<i class="fa-solid fa-link"></i>'
-					+ '<div class="preview-empty-title">尚未绑定班级</div>'
-					+ '<div class="preview-empty-desc">打开右上角「设置」→「绑定」，填入绑定码后即可在这里查看作业</div>';
+				tip.innerHTML = '<i class="fa-solid fa-clipboard-list"></i>'
+					+ '<div class="preview-empty-title">暂无作业</div>'
+					+ '<div class="preview-empty-desc">点击左侧任意科目进入编辑模式，添加作业项后回到「全部」即可在此查看</div>';
 				elements.previewSubjects.appendChild(tip);
 				return;
 			}
@@ -1712,7 +1256,7 @@
 				});
 				
 				// 执行清空数据和恢复锁定项的操作
-				const doClear = async () => {
+				const doClear = () => {
 					initHomeworkData();
 					// 恢复锁定的作业项
 					subjects.forEach(subject => {
@@ -1721,18 +1265,8 @@
 						}
 					});
 
-					// 上传前最后从云端取一次数据，发现变更则交给用户决定
-					const v = await verifyCloudBeforeUpload();
-					if (!v.ok) {
-						if (v.readFailed) {
-							alert('无法读取云端数据（' + lastSbError + '），为避免覆盖云端内容，本次上传已取消。\n请检查网络后重试。');
-							return;
-						}
-						showSaveConflictWarning(() => uploadHomeworkToSb());
-						return;
-					}
-					// 上传到云端
-					uploadHomeworkToSb(v.row);
+					// 保存到本地
+					saveClassData();
 				};
 				
 				// 如果当前是编辑模式，添加淡出动画
@@ -1920,9 +1454,9 @@
 				clockEl.textContent = now.toLocaleTimeString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false });
 			}
 			if (dateEl) {
-				const parts = new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }).formatToParts(now);
+				const parts = new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: 'numeric', day: 'numeric', weekday: 'long' }).formatToParts(now);
 				const get = (t) => (parts.find(p => p.type === t) || {}).value || '';
-				dateEl.textContent = `${get('year')}年${get('month')}${get('day')}日 ${get('weekday')}`;
+				dateEl.textContent = `${get('year')}年${get('month')}月${get('day')}日 ${get('weekday')}`;
 			}
 		}
 
@@ -1942,3 +1476,4 @@
 		function handleExport() {
 			exportToImage();
 		}
+	

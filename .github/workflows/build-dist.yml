@@ -1,0 +1,52 @@
+name: 生成单文件 HTML
+
+on:
+  push:
+    # dist 由本工作流自动提交，忽略它的变更可避免无限循环
+    paths-ignore:
+      - 'dist/**'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          # PR 场景下检出 PR 自身的分支，而不是合并后的临时 ref
+          ref: ${{ github.head_ref || github.ref }}
+          fetch-depth: 0
+
+      - name: 准备 Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 合并 HTML / CSS / JS
+        run: node build.js
+
+      - name: 上传产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-single-file-html
+          path: dist/*.html
+          if-no-files-found: error
+
+      - name: 提交 dist 回仓库
+        # 只在 push / 手动触发时回写，PR 仅作校验，不落库
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f dist
+          if git diff --cached --quiet; then
+            echo "dist 无变化，跳过提交"
+          else
+            git commit -m "chore(dist): 重新生成单文件 HTML [skip ci]"
+            git push
+          fi

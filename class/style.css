@@ -2,11 +2,11 @@
 			margin: 0;
 			padding: 0;
 			box-sizing: border-box;
-			font-family: 'Microsoft YaHei', '微软雅黑', sans-serif;
+			font-family: 'SimSun', '宋体', sans-serif;
 		}
 
 		body {
-			font-family: 'Microsoft YaHei', '微软雅黑', sans-serif;
+			font-family: 'SimSun', '宋体', sans-serif;
 			background: linear-gradient(to bottom right, #f0f9ff, #e0f2fe, #ede9fe);
 			min-height: 100vh;
 			overflow-x: hidden;
@@ -676,7 +676,7 @@
 			background: #f3f4f6;
 			color: #1f2937;
 			font-size: 14px;
-			font-family: 'Microsoft YaHei', '微软雅黑', monospace;
+			font-family: 'SimSun', '宋体', monospace;
 		}
 		.bound-class-grid {
 			display: flex;
@@ -712,7 +712,7 @@
 		.bound-class-card .bc-code {
 			font-size: 14px;
 			color: #1f2937;
-			font-family: 'Microsoft YaHei', '微软雅黑', monospace;
+			font-family: 'SimSun', '宋体', monospace;
 			background: #f3f4f6;
 			padding: 6px;
 			border-radius: 4px;
@@ -1087,7 +1087,7 @@
 		.evening-study-time {
 			position: absolute; top: 20px; right: 30px;
 			font-size: 28px; color: var(--theme-text-primary);
-			font-family: 'Microsoft YaHei', '微软雅黑', sans-serif;
+			font-family: 'SimSun', '宋体', sans-serif;
 			z-index: 10001;
 		}
 		.evening-study-content {
