@@ -3,11 +3,15 @@
 			margin: 0;
 			padding: 0;
 			box-sizing: border-box;
-			font-family: 'SimSun', '宋体', sans-serif;
+			/* 这里必须用 inherit，不能写死字体：
+			   作业预览/导出区的根节点内联了 SimSun，靠子元素继承生效；
+			   若在 * 上写死字体，会直接命中每个后代元素（直接声明优先于继承），
+			   把继承下来的宋体覆盖成雅黑。UI 默认字体由 body 提供。 */
+			font-family: inherit;
 		}
 
 		body {
-			font-family: 'SimSun', '宋体', sans-serif;
+			font-family: 'Microsoft YaHei', '微软雅黑', sans-serif;
 			background: linear-gradient(to bottom right, #f0f9ff, #e0f2fe, #ede9fe);
 			min-height: 100vh;
 			overflow-x: hidden;
@@ -259,24 +263,6 @@
 		}
 
 		.homework-content:focus {
-			outline: none;
-			border-color: #4F46E5;
-			box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
-		}
-
-		.announcement-text {
-			width: 100%;
-			min-height: 200px;
-			padding: 12px;
-			border: 1px solid #d1d5db;
-			border-radius: 6px;
-			font-size: 14px;
-			resize: vertical;
-			font-family: inherit;
-			transition: all 0.2s ease;
-		}
-
-		.announcement-text:focus {
 			outline: none;
 			border-color: #4F46E5;
 			box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
@@ -603,30 +589,6 @@
 				justify-content: flex-start;
 			}
 		}
-
-		.section-card {
-			border: 1px solid #e5e7eb;
-			border-radius: 8px;
-			padding: 16px;
-			margin-bottom: 16px;
-			background: #f9fafb;
-		}
-		.section-card-title {
-			color: #1f2937;
-		}
-		.section-title {
-			font-size: 16px;
-			font-weight: 700;
-			color: #1f2937;
-			margin-bottom: 12px;
-			border-bottom: 1px solid #e5e7eb;
-			padding-bottom: 8px;
-		}
-		.section-tip {
-			font-size: 16px;
-			color: #b45309;
-			margin-bottom: 12px;
-		}
 		.row-flex {
 			display: flex;
 			align-items: center;
@@ -717,33 +679,9 @@
 			padding: 12px;
 			border-radius: 8px;
 		}
-		.changelog-version {
-			font-size: 14px;
-			font-weight: 600;
-			color: #4F46E5;
-			margin-right: 12px;
-		}
 		.changelog-date {
 			font-size: 12px;
 			color: #9ca3af;
-		}
-		.changelog-details {
-			list-style: none;
-			padding: 0;
-			margin: 8px 0 0 0;
-		}
-		.changelog-details li {
-			font-size: 13px;
-			color: #6b7280;
-			padding-left: 16px;
-			position: relative;
-			margin-bottom: 4px;
-		}
-		.changelog-details li::before {
-			content: '•';
-			position: absolute;
-			left: 0;
-			color: #4F46E5;
 		}
 
 		/* 版本头部 */
@@ -802,26 +740,6 @@
 			font-weight: bold;
 		}
 
-		/* 子列表（缩进） */
-		.changelog-sublist {
-		list-style: none;
-			padding-left: 6px;
-			margin: 2px 0 4px 0;
-		}
-		.changelog-sublist li {
-			font-size: 13px;
-			color: #6b7280;
-			padding-left: 10px;
-			position: relative;
-			margin-bottom: 2px;
-		}
-		.changelog-sublist li::before {
-			content: "◦";
-			position: absolute;
-			left: 0;
-			color: #9ca3af;
-		}
-
 		/* 深色模式适配 */
 		body[data-theme="dark"] .changelog-version-tag {
 			background: #1e293b;
@@ -833,12 +751,6 @@
 		}
 		body[data-theme="dark"] .changelog-list > li {
 			color: #cbd5e1;
-		}
-		body[data-theme="dark"] .changelog-sublist li {
-			color: #94a3b8;
-		}
-		body[data-theme="dark"] .changelog-sublist li strong {
-			color: #e2e8f0;
 		}
 
 		.about-dev-info {
@@ -913,10 +825,7 @@
 		body[data-theme="dark"] .shortcut-item { background-color: var(--theme-section-bg); color: var(--theme-text-secondary); border-color: var(--theme-border-light); }
 		body[data-theme="dark"] .shortcut-item:hover { background-color: var(--theme-card-hover); }
 		body[data-theme="dark"] .modal-content { background-color: var(--theme-modal-bg); }
-		body[data-theme="dark"] .modal-header h2,
-		body[data-theme="dark"] .section-title { color: var(--theme-text-primary); }
-		body[data-theme="dark"] .section-card { background: var(--theme-section-bg); border-color: var(--theme-border); }
-		body[data-theme="dark"] .section-card-title { color: var(--theme-text-primary); }
+		body[data-theme="dark"] .modal-header h2{ color: var(--theme-text-primary); }
 		body[data-theme="dark"] .row-flex label,
 		body[data-theme="dark"] .setting-item label,
 		body[data-theme="dark"] .checkbox-row label { color: var(--theme-text-secondary); }
@@ -924,14 +833,12 @@
 		body[data-theme="dark"] .option-input,
 		body[data-theme="dark"] .estimated-time,
 		body[data-theme="dark"] .submit-time,
-		body[data-theme="dark"] .homework-content,
-		body[data-theme="dark"] .announcement-text { background-color: var(--theme-input-bg); color: var(--theme-text-primary); border-color: var(--theme-border-light); }
+		body[data-theme="dark"] .homework-content{ background-color: var(--theme-input-bg); color: var(--theme-text-primary); border-color: var(--theme-border-light); }
 		body[data-theme="dark"] .about-section-title { color: var(--theme-text-secondary); }
 		body[data-theme="dark"] .about-section-text { color: var(--theme-text-muted); }
 		body[data-theme="dark"] .about-dev-info { color: var(--theme-text-muted); }
 		body[data-theme="dark"] .about-dev-info strong { color: var(--theme-text-secondary); }
 		body[data-theme="dark"] .changelog-item { background-color: var(--theme-section-bg); }
-		body[data-theme="dark"] .changelog-version { color: var(--theme-accent); }
 		body[data-theme="dark"] .about-copyright p { color: var(--theme-text-muted); }
 		body[data-theme="dark"] .time-dropdown { background-color: var(--theme-modal-bg); border-color: var(--theme-border); }
 		body[data-theme="dark"] .time-option:hover { background-color: var(--theme-card-hover); }
@@ -939,7 +846,6 @@
 		body[data-theme="dark"] .homework-item.locked { border-color: #F59E0B; background-color: rgba(245,158,11,0.1); }
 		body[data-theme="dark"] #important-date-display { color: var(--theme-text-secondary); }
 		body[data-theme="dark"] .shortcut-title { color: var(--theme-text-muted); }
-		body[data-theme="dark"] .section-tip { color: var(--theme-tip-color); }
 		body[data-theme="dark"] .tab-btn { color: var(--theme-text-muted); }
 		body[data-theme="dark"] .tab-btn:hover { color: var(--theme-text-primary); }
 		body[data-theme="dark"] .tab-btn.active { color: var(--theme-accent); border-bottom-color: var(--theme-accent); }
@@ -997,7 +903,7 @@
 		.evening-study-time {
 			position: absolute; top: 20px; right: 30px;
 			font-size: 28px; color: var(--theme-text-primary);
-			font-family: 'SimSun', '宋体', sans-serif;
+			font-family: 'Microsoft YaHei', '微软雅黑', sans-serif;
 			z-index: 10001;
 		}
 		.evening-study-content {
@@ -1089,7 +995,6 @@
 		}
 		body[data-theme="dark"] #announcement-content,
 		body[data-theme="dark"] .changelog-date,
-		body[data-theme="dark"] .changelog-details li,
 		body[data-theme="dark"] .subject-info h2,
 		body[data-theme="dark"] .subject-info > span,
 		body[data-theme="dark"] .shortcut-sidebar > div {
@@ -1140,8 +1045,7 @@
 		.subject-item { border-radius: var(--radius-control); }
 		.shortcut-item { border-radius: var(--radius-control); }
 		.homework-item { border-radius: var(--radius-card); }
-		.homework-content,
-		.announcement-text { border-radius: var(--radius-control); }
+		.homework-content{ border-radius: var(--radius-control); }
 		.estimated-time,
 		.submit-time { border-radius: var(--radius-control); }
 
@@ -1281,18 +1185,6 @@
 		.tab-btn:hover { background: var(--theme-card-hover); color: var(--theme-text-primary); }
 		.tab-btn.active { background: var(--accent-soft); }
 
-		.section-tip {
-			display: flex;
-			align-items: center;
-			gap: 6px;
-			font-size: 13px;
-			padding: 8px 12px;
-			margin-bottom: 14px;
-			border-radius: var(--radius-control);
-			background: rgba(245, 158, 11, 0.10);
-		}
-		body[data-theme="dark"] .section-tip { background: rgba(251, 191, 36, 0.12); }
-
 		.row-flex { margin-bottom: 14px; }
 		.row-flex label { min-width: 88px; color: var(--theme-text-muted); }
 		.row-flex input[type="text"],
@@ -1305,7 +1197,6 @@
 			height: 16px;
 			accent-color: var(--theme-accent);
 		}
-		.section-card { border-radius: var(--radius-card); }
 
 		.about-actions { padding: 0 0 16px; }
 		.about-content { padding: 0; }
@@ -1379,16 +1270,6 @@
 		:where(.btn):disabled,
 		:where(.btn).disabled { border-color: var(--theme-border); }
 
-		.btn-secondary {
-			background-color: var(--theme-section-bg);
-			border: 1px solid var(--theme-border-light);
-			color: var(--theme-text-secondary);
-		}
-		.btn-secondary:hover {
-			background-color: var(--theme-card-hover);
-			color: var(--theme-text-primary);
-		}
-
 		:where(.btn-small) {
 			background-color: var(--theme-section-bg);
 			border: 1px solid var(--theme-border-light);
@@ -1410,8 +1291,6 @@
 
 		.theme-toggle { color: var(--theme-text-primary); }
 		.close-modal { color: var(--theme-text-muted); }
-		.ob-choice { background: var(--theme-section-bg); }
-		.ob-step .ob-step-dot { background: var(--theme-card-hover); }
 
 		input[type="checkbox"] { accent-color: var(--theme-accent); }
 		select {
@@ -1540,7 +1419,6 @@
 		.preview-time.sc-9 { --pt-bg: #EFF1F8; --pt-fg: #5C6C96; } /* 地理 */
 		.preview-time.sc-10 { --pt-bg: #F2F2F4; --pt-fg: #6C6C74; } /* 其他 */
 
-
 		/* 时间标签只出现在导出内容里（预览 / 导出 / 晚自习三处共用），
 		   其内容恒为白底黑字，故一律用浅色档配色，不随主题变化 */
 		#preview-subjects .preview-time.sc-1,
@@ -1597,7 +1475,6 @@
 		[data-subject="其他"] { --sc-ink: #6C6C74; --sc-fill: #6C6C74; --sc-fill2: #75757D; --sc-soft: #F2F2F4; }
 		.sc-10 { --sc-ink: #6C6C74; }
 
-
 /* 深色档仅用于「真正在主题背景上」的元素：侧栏文字、编辑模式标题。
    预览 / 导出 / 晚自习的内容区恒为白底，一律用浅色档，不在此列。 */
 		body[data-theme="dark"] .subject-sidebar [data-subject="语文"],
@@ -1642,3 +1519,8 @@
 		#preview-subjects .preview-subject strong[class] { color: var(--sc-ink, var(--theme-accent)) !important; }
 /* 编辑模式科目标题 */
 		#current-subject-title { color: var(--sc-ink, var(--theme-text-primary)); }
+
+		/* 设置模态框：固定高度，切换标签页时高度保持不变 */
+		#settings-modal .modal-content {
+			height: min(88vh, 860px);
+		}

@@ -16,7 +16,7 @@
 	<div id="loading-overlay" class="loading-overlay active"><div class="loading-card"><div class="loading-spinner"></div><div id="loading-text" class="loading-text">加载中...</div></div></div>
 	<!-- 顶部导航 -->
 	<div class="header">
-		<h1 style="flex: 0 0 auto;">作业管理器<span style="font-size: 16px; color: #28fa9f; margin-left: 8px;">v3.1.0 教师端</span></h1>
+		<h1 style="flex: 0 0 auto;">作业管理器<span style="font-size: 16px; color: #28fa9f; margin-left: 8px;">v3.2.0 教师端</span></h1>
 		<select id="class-select" class="header-class-select" style="flex: 0 0 auto; margin-left: 12px;" onchange="onClassSelectChange(this.value)"><option value="" disabled selected>请先在设置中绑定班级</option></select>
 		<button class="theme-toggle" onclick="toggleTheme()" title="切换深色/浅色模式" style="position: relative; margin-left: 12px;">
 			<span class="moon-icon"><i class="fa-solid fa-moon"></i></span>
@@ -24,7 +24,7 @@
 		</button>
 		<div id="important-date-display" style="flex: 1 1 0%; font-size: 18px; color: rgb(64, 64, 64); white-space: nowrap; text-align: center; transition: opacity 0.5s; opacity: 1;"></div>
 		<div class="header-buttons" style="flex: 0 0 auto;">
-			<button class="btn btn-batch" id="batch-btn" onclick="openBatchDialog()" style="display: none;" title="批量布置作业到多个班级">批量布置</button>
+			<button class="btn btn-batch" id="batch-btn" onclick="openBatchDialog()" title="批量布置作业到多个班级">批量布置</button>
 			<button class="btn btn-success" onclick="handleExport()">导出作业</button>
 			<button class="btn btn-danger" onclick="clearAllHomework()">快捷删除</button>
 			<button class="btn btn-warning" onclick="openSettings()">设置</button>
@@ -53,7 +53,7 @@
 		<div class="main-content" id="main-content">
 			<!-- 预览模式 -->
 		<div class="preview-mode" id="preview-mode" style="display: flex;">
-			<div class="preview-subjects" id="preview-subjects"><div style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 0); font-family: &quot;SimSun&quot;, 宋体, sans-serif; font-size: 30px; line-height: 1; text-align: left; position: relative;"><div style="font-size: 33px; margin-bottom: 9px; text-align: left;">班级作业 <span style="font-size: 24px; font-weight: normal; color: #666666;">2026-08-30</span></div><div style="text-align: left; font-size: 30px; line-height: 1;"></div></div></div>
+			<div class="preview-subjects" id="preview-subjects"><div style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 0); font-family: &quot;Times New Roman&quot;, &quot;SimSun&quot;, &quot;宋体&quot;, serif; font-size: 30px; line-height: 1; text-align: left; position: relative;"><div style="font-size: 33px; margin-bottom: 9px; text-align: left;">班级作业 <span style="font-size: 24px; font-weight: normal; color: #666666;">2026-08-30</span></div><div style="text-align: left; font-size: 30px; line-height: 1;"></div></div></div>
 		</div>
 
 		<!-- 编辑模式 -->
@@ -211,27 +211,23 @@
 						<div class="changelog-item">
 							<!-- 头部区域 -->
 							<div class="changelog-header">
-								<span class="changelog-version-tag">v3.1.0</span>
-								<span class="changelog-date">2026-09-13</span>
+								<span class="changelog-version-tag">v3.2.0</span>
+								<span class="changelog-date">2026-10-07</span>
 							</div>
 							<!-- 内容主体 -->
 							<div class="changelog-body">
 								<div class="changelog-section">
 									<div class="section-label"><i class="fa-solid fa-sparkles"></i> 新增功能</div>
 									<ul class="changelog-list">
-										<li>新增「作业管理器（本地）」独立版本</li>
-										<li>教师端、课堂端新增「云端作业变更冲突检测」</li>
-										<li>更新提示弹窗新增 Gitee 备用下载地址，便于 GitHub 访问缓慢时下载</li>
+										<li>教师端新增引导页面</li>
+										<li>教师端新增创建班级功能</li>
 									</ul>
 								</div>
 								<div class="changelog-section">
 									<div class="section-label"><i class="fa-solid fa-screwdriver-wrench"></i> 修复与优化</div>
 									<ul class="changelog-list">
-										<li>教师端批量布置容错增强</li>
-										<li>CDN 资源切换至 fastly.jsdelivr.net 镜像，提升部分网络环境下的加载稳定性</li>
-										<li>预览作业等减少 innerHTML 拼接，增强转义与安全性</li>
-										<li>降低多人/多端同时编辑同一班级时，后保存无提示覆盖云端内容的风险</li>
-										<li>修复其他已知问题，提升使用稳定性</li>
+										<li>大幅优化界面 UI</li>
+										<li>删去自动检查更新功能</li>
 									</ul>
 								</div>
 							</div>
@@ -254,34 +250,6 @@
 					<p>© 2025-2026 作业管理器. All rights reserved.</p>
 				</div>
 			</div>
-			</div>
-		</div>
-	</div>
-
-	<!-- 更新提示模态框 -->
-	<div id="update-modal" class="modal">
-		<div class="modal-content" style="max-width: 480px;">
-			<div class="modal-header">
-				<h2 class="modal-title"><i class="fa-solid fa-bell"></i>检测到新版本，请更新</h2>
-				<button type="button" class="close-modal" onclick="closeUpdateModal()" aria-label="关闭"><i class="fa-solid fa-xmark"></i></button>
-			</div>
-			<div class="modal-body">
-				<div style="font-size: 15px; line-height: 1.8; color: var(--theme-text-primary, #333);">
-					<div>当前版本：<span id="update-current-version" style="font-weight: 600;"></span></div>
-					<div>最新版本：<span id="update-remote-version" style="font-weight: 600; color: #4F46E5;"></span></div>
-					<div id="update-release-notes" style="margin-top: 12px; padding: 12px; background: var(--theme-section-bg, #f9fafb); border-radius: 6px; font-size: 13px; white-space: pre-wrap; word-break: break-word; max-height: 200px; overflow-y: auto;"></div>
-				</div>
-				<div style="margin-top: 12px; padding: 10px 12px; background: var(--theme-section-bg, #f9fafb); border-left: 3px solid #4F46E5; border-radius: 6px; font-size: 13px; line-height: 1.7; color: var(--theme-text-muted, #6b7280);">
-					<div style="font-weight: 600; color: var(--theme-text-primary, #333); margin-bottom: 4px;"><i class="fa-solid fa-lightbulb"></i> 备用下载地址（Gitee）</div>
-					<div>若 GitHub 访问缓慢或无法打开，可使用备用网址下载：</div>
-					<a href="https://gitee.com/homework_manager/homework-manager" target="_blank" rel="noopener" style="color: #4F46E5; word-break: break-all;">gitee.com/homework_manager/homework-manager</a>
-	 			</div>
-				<div style="display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; flex-wrap: wrap;">
-					<button class="btn btn-secondary" onclick="ignoreUpdateVersion()" title="之后不再提示此版本的更新">忽略此版本</button>
-					<button class="btn btn-secondary" onclick="closeUpdateModal()" title="下次打开页面时再次提醒">稍后更新</button>
-					<button class="btn btn-success" onclick="goToUpdate()"><i class="fa-solid fa-download"></i> 去更新</button>
-					<a id="update-release-link" href="#" target="_blank" rel="noopener" style="display: none;"></a>
-				</div>
 			</div>
 		</div>
 	</div>

@@ -1,0 +1,37 @@
+# ===== 依赖 =====
+node_modules/
+
+# ===== 构建产物 =====
+# 注意：dist/ 与根目录 index.html 是「有意提交」的产物——
+# .github/workflows/build-dist.yml 会在 push 时执行 node build.js
+# 并用 `git add -f dist` 强制回写仓库，因此这里不忽略它们。
+# 如需忽略，请同时修改该工作流。
+
+# ===== 操作系统 =====
+.DS_Store
+._*
+Thumbs.db
+Desktop.ini
+
+# ===== 编辑器 / IDE =====
+.vscode/
+.idea/
+*.swp
+*.swo
+*.iml
+
+# ===== 日志与临时文件 =====
+*.log
+npm-debug.log*
+yarn-error.log*
+*.tmp
+*.temp
+
+# ===== 本地备份 =====
+*.bak
+*.orig
+*~
+
+# ===== WorkBuddy 本地数据（记忆日志、会话缓存等）=====
+# 若希望团队共享项目级技能，可删除本行。
+.workbuddy/

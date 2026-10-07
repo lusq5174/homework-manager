@@ -22,7 +22,6 @@
 		const $$ = (selector) => document.querySelectorAll(selector);
 
 		const elements = {
-			mainContent: $('#main-content'),
 			previewMode: $('#preview-mode'),
 			editMode: $('#edit-mode'),
 			previewSubjects: $('#preview-subjects'),
@@ -46,7 +45,7 @@
 
 		const APP_CONFIG = {
 			"appName": "作业管理器（教师端）",
-			"version": "v3.1.0"
+			"version": "v3.2.0"
 		};
 
 		function showLoadingOverlay(text = '加载中...') {
@@ -376,7 +375,6 @@
 				justSetCurrent = true;
 			}
 			refreshClassSelectOptions();
-			updateBatchButtonVisibility();
 			if (justSetCurrent) {
 				await applyCurrentClass(true);
 			}
@@ -398,7 +396,6 @@
 			if (currentChanged) {
 				await applyCurrentClass(true);
 			}
-			updateBatchButtonVisibility();
 		}
 
 		async function applyCurrentClass(reloadHomework) {
@@ -733,110 +730,6 @@
 			document.getElementById('about-modal').classList.remove('active');
 		}
 
-		/* ==================== 检查更新 ==================== */
-		function parseVersion(versionStr) {
-			const match = String(versionStr || '').match(/(\d+(\.\d+)*)/);
-			if (!match) return [0];
-			return match[1].split('.').map(Number);
-		}
-		function compareVersions(a, b) {
-			const va = parseVersion(a), vb = parseVersion(b);
-			const maxLen = Math.max(va.length, vb.length);
-			for (let i = 0; i < maxLen; i++) {
-				const na = va[i] || 0, nb = vb[i] || 0;
-				if (na > nb) return 1;
-				if (na < nb) return -1;
-			}
-			return 0;
-		}
-		const UPDATE_REPO_API = 'https://api.github.com/repos/lusq5174/homework-manager';
-		const UPDATE_REPO_HOME = 'https://github.com/lusq5174/homework-manager';
-		const IGNORE_KEY = 'ignoredUpdateVersion';
-
-		function getIgnoredVersion() {
-			try { return localStorage.getItem(IGNORE_KEY) || ''; } catch (e) { return ''; }
-		}
-
-		/** 带超时的 fetch，避免网络异常时请求长期挂起（默认 8 秒） */
-		async function fetchWithTimeout(url, options, timeout) {
-			const ms = timeout || 8000;
-			if (typeof AbortController === 'undefined') return fetch(url, options);
-			const ctrl = new AbortController();
-			const timer = setTimeout(() => ctrl.abort(), ms);
-			try {
-				return await fetch(url, Object.assign({}, options, { signal: ctrl.signal }));
-			} finally {
-				clearTimeout(timer);
-			}
-		}
-
-		/** 每次打开页面时调用：拉取最新发行版版本号并与本地版本比对 */
-		async function checkForUpdates() {
-			try {
-				const ghHeaders = { 'Accept': 'application/vnd.github+json' };
-				let remoteVersion = '';
-				let releaseUrl = UPDATE_REPO_HOME;
-				let releaseNotes = '';
-
-				// 优先取最新发行版；仓库若只打 Tag 未发 Release，则回退取最新 Tag
-				const resp = await fetchWithTimeout(UPDATE_REPO_API + '/releases/latest', { headers: ghHeaders });
-				if (resp.ok) {
-					const data = await resp.json();
-					remoteVersion = (data && data.tag_name) || '';
-					releaseUrl = (data && data.html_url) || UPDATE_REPO_HOME;
-					releaseNotes = (data && data.body) || '';
-				} else {
-					const tagResp = await fetchWithTimeout(UPDATE_REPO_API + '/tags?per_page=1', { headers: ghHeaders });
-					if (!tagResp.ok) return;
-					const tags = await tagResp.json();
-					if (!Array.isArray(tags) || !tags.length || !tags[0].name) return;
-					remoteVersion = tags[0].name;
-					releaseUrl = UPDATE_REPO_HOME + '/releases';
-				}
-				if (!remoteVersion) return;
-
-				if (compareVersions(remoteVersion, APP_CONFIG.version) > 0) {
-					// 仅当远端版本更高时提示；该版本已被忽略则不再打扰
-					if (getIgnoredVersion() === remoteVersion) {
-						console.log('[更新检测] 版本 ' + remoteVersion + ' 已被忽略');
-						return;
-					}
-					console.log('[更新检测] 检测到新版本：' + remoteVersion + '（当前 ' + APP_CONFIG.version + '）');
-					showUpdateModal(remoteVersion, releaseUrl, releaseNotes);
-				} else {
-					console.log('一致');
-				}
-			} catch (e) { /* 网络错误静默处理，不影响正常使用 */ }
-		}
-		function showUpdateModal(remoteVersion, releaseUrl, releaseNotes) {
-			const modal = document.getElementById('update-modal');
-			if (!modal) return;
-			document.getElementById('update-remote-version').textContent = remoteVersion;
-			document.getElementById('update-current-version').textContent = APP_CONFIG.version;
-			const link = document.getElementById('update-release-link');
-			if (link) link.href = releaseUrl || UPDATE_REPO_HOME;
-			const notesEl = document.getElementById('update-release-notes');
-			if (notesEl) notesEl.textContent = releaseNotes ? releaseNotes.slice(0, 500) + (releaseNotes.length > 500 ? '...' : '') : '';
-			modal.classList.add('active');
-		}
-		function closeUpdateModal() {
-			const modal = document.getElementById('update-modal');
-			if (modal) modal.classList.remove('active');
-		}
-		/**「去更新」：在新标签页打开发行版下载页 */
-		function goToUpdate() {
-			const link = document.getElementById('update-release-link');
-			const url = (link && link.href && link.href !== '#') ? link.href : UPDATE_REPO_HOME;
-			try { window.open(url, '_blank', 'noopener'); } catch (e) { location.href = url; }
-			closeUpdateModal();
-		}
-		/**「忽略此版本」：记录版本号，之后不再提示该版本 */
-		function ignoreUpdateVersion() {
-			const vEl = document.getElementById('update-remote-version');
-			try { localStorage.setItem(IGNORE_KEY, (vEl && vEl.textContent) || ''); } catch (e) {}
-			closeUpdateModal();
-		}
-
 		async function saveClassSettings() {
 			const nmEl = document.getElementById("cls-class-name");
 			const etEl = document.getElementById("cls-export-title");
@@ -945,7 +838,6 @@
 			refreshClassSelectOptions();
 			renderBoundClassesUI();
 			updateClassSettingsUI();
-			updateBatchButtonVisibility();
 			await applyCurrentClass(true);
 			return true;
 		}
@@ -1371,7 +1263,6 @@
 			ensureSupabase();
 
 			refreshClassSelectOptions();
-			updateBatchButtonVisibility();
 			applyVariantUI();
 
 			initHomeworkData();
@@ -1388,7 +1279,6 @@
 					applyVariantUI();
 				} finally {
 					hideLoadingOverlay();
-					if (!firstRun) checkForUpdates();
 				}
 			})();
 		}
@@ -1776,7 +1666,7 @@
 			const exportContent = document.createElement('div');
 			exportContent.style.backgroundColor = '#ffffff';
 			exportContent.style.color = '#000000';
-			exportContent.style.fontFamily = "'SimSun', '宋体', sans-serif";
+			exportContent.style.fontFamily = "'Times New Roman', 'SimSun', '宋体', serif";
 			exportContent.style.fontSize = `${classSettings.exportFontSize}px`;
 			exportContent.style.lineHeight = '1';
 			exportContent.style.textAlign = 'left';
@@ -1952,11 +1842,6 @@
 			}
 		}
 
-		async function exportToImage() {
-			const ok = await renderAndDownloadPNG(`${new Date().toISOString().split('T')[0]}.png`);
-			if (!ok) alert('导出图片失败，请重试');
-		}
-
 		// 清空所有作业
 		function clearAllHomework() {
 			if (confirm('确定要清空所有科目的作业吗？此操作不可恢复。（锁定的作业项将被保留）')) {
@@ -2069,13 +1954,6 @@
 		}
 
 		/* ==================== 批量模式 ==================== */
-		function updateBatchButtonVisibility() {
-			const btn = document.getElementById('batch-btn');
-			if (!btn) return;
-			if (boundClasses.length >= 2) { btn.style.display = ''; }
-			else { btn.style.display = 'none'; }
-		}
-
 		function openBatchDialog() {
 			renderClassCheckList('batch-class-list', 'batch-cls-');
 			onBatchTypeChange();
@@ -2296,11 +2174,7 @@
 
 		/* ==================== 多班级导出 ==================== */
 		function handleExport() {
-			if (boundClasses.length >= 2) {
-				openExportDialog();
-			} else {
-				exportToImage();
-			}
+			openExportDialog();
 		}
 
 		function openExportDialog() {

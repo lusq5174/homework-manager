@@ -15,11 +15,15 @@
 			margin: 0;
 			padding: 0;
 			box-sizing: border-box;
-			font-family: 'SimSun', '宋体', sans-serif;
+			/* 这里必须用 inherit，不能写死字体：
+			   作业预览/导出区的根节点内联了 SimSun，靠子元素继承生效；
+			   若在 * 上写死字体，会直接命中每个后代元素（直接声明优先于继承），
+			   把继承下来的宋体覆盖成雅黑。UI 默认字体由 body 提供。 */
+			font-family: inherit;
 		}
 
 		body {
-			font-family: 'SimSun', '宋体', sans-serif;
+			font-family: 'Microsoft YaHei', '微软雅黑', sans-serif;
 			background: linear-gradient(to bottom right, #f0f9ff, #e0f2fe, #ede9fe);
 			min-height: 100vh;
 			overflow-x: hidden;
@@ -635,24 +639,6 @@
 		body:not(.preview-mode-active) #class-select {
 			display: none;
 		}
-		.section-card {
-			border: 1px solid #e5e7eb;
-			border-radius: 8px;
-			padding: 16px;
-			margin-bottom: 16px;
-			background: #f9fafb;
-		}
-		.section-card-title {
-			color: #1f2937;
-		}
-		.section-title {
-			font-size: 16px;
-			font-weight: 700;
-			color: #1f2937;
-			margin-bottom: 12px;
-			border-bottom: 1px solid #e5e7eb;
-			padding-bottom: 8px;
-		}
 		.section-tip {
 			font-size: 16px;
 			color: #b45309;
@@ -708,7 +694,7 @@
 			background: #f3f4f6;
 			color: #1f2937;
 			font-size: 14px;
-			font-family: 'SimSun', '宋体', monospace;
+			font-family: 'Microsoft YaHei', '微软雅黑', monospace;
 		}
 		.bound-class-grid {
 			display: flex;
@@ -744,7 +730,7 @@
 		.bound-class-card .bc-code {
 			font-size: 14px;
 			color: #1f2937;
-			font-family: 'SimSun', '宋体', monospace;
+			font-family: 'Microsoft YaHei', '微软雅黑', monospace;
 			background: #f3f4f6;
 			padding: 6px;
 			border-radius: 4px;
@@ -835,33 +821,9 @@
 			padding: 12px;
 			border-radius: 8px;
 		}
-		.changelog-version {
-			font-size: 14px;
-			font-weight: 600;
-			color: #4F46E5;
-			margin-right: 12px;
-		}
 		.changelog-date {
 			font-size: 12px;
 			color: #9ca3af;
-		}
-		.changelog-details {
-			list-style: none;
-			padding: 0;
-			margin: 8px 0 0 0;
-		}
-		.changelog-details li {
-			font-size: 13px;
-			color: #6b7280;
-			padding-left: 16px;
-			position: relative;
-			margin-bottom: 4px;
-		}
-		.changelog-details li::before {
-			content: '•';
-			position: absolute;
-			left: 0;
-			color: #4F46E5;
 		}
 
 		/* 版本头部 */
@@ -920,26 +882,6 @@
 			font-weight: bold;
 		}
 
-		/* 子列表（缩进） */
-		.changelog-sublist {
-		list-style: none;
-			padding-left: 6px;
-			margin: 2px 0 4px 0;
-		}
-		.changelog-sublist li {
-			font-size: 13px;
-			color: #6b7280;
-			padding-left: 10px;
-			position: relative;
-			margin-bottom: 2px;
-		}
-		.changelog-sublist li::before {
-			content: "◦";
-			position: absolute;
-			left: 0;
-			color: #9ca3af;
-		}
-
 		/* 深色模式适配 */
 		body[data-theme="dark"] .changelog-version-tag {
 			background: #1e293b;
@@ -951,12 +893,6 @@
 		}
 		body[data-theme="dark"] .changelog-list > li {
 			color: #cbd5e1;
-		}
-		body[data-theme="dark"] .changelog-sublist li {
-			color: #94a3b8;
-		}
-		body[data-theme="dark"] .changelog-sublist li strong {
-			color: #e2e8f0;
 		}
 
 		.about-dev-info {
@@ -1031,10 +967,7 @@
 		body[data-theme="dark"] .shortcut-item { background-color: var(--theme-section-bg); color: var(--theme-text-secondary); border-color: var(--theme-border-light); }
 		body[data-theme="dark"] .shortcut-item:hover { background-color: var(--theme-card-hover); }
 		body[data-theme="dark"] .modal-content { background-color: var(--theme-modal-bg); }
-		body[data-theme="dark"] .modal-header h2,
-		body[data-theme="dark"] .section-title { color: var(--theme-text-primary); }
-		body[data-theme="dark"] .section-card { background: var(--theme-section-bg); border-color: var(--theme-border); }
-		body[data-theme="dark"] .section-card-title { color: var(--theme-text-primary); }
+		body[data-theme="dark"] .modal-header h2{ color: var(--theme-text-primary); }
 		body[data-theme="dark"] .row-flex label,
 		body[data-theme="dark"] .setting-item label,
 		body[data-theme="dark"] .checkbox-row label { color: var(--theme-text-secondary); }
@@ -1054,7 +987,6 @@
 		body[data-theme="dark"] .about-dev-info { color: var(--theme-text-muted); }
 		body[data-theme="dark"] .about-dev-info strong { color: var(--theme-text-secondary); }
 		body[data-theme="dark"] .changelog-item { background-color: var(--theme-section-bg); }
-		body[data-theme="dark"] .changelog-version { color: var(--theme-accent); }
 		body[data-theme="dark"] .about-copyright p { color: var(--theme-text-muted); }
 		body[data-theme="dark"] .time-dropdown { background-color: var(--theme-modal-bg); border-color: var(--theme-border); }
 		body[data-theme="dark"] .time-option:hover { background-color: var(--theme-card-hover); }
@@ -1248,7 +1180,6 @@
 		body[data-theme="dark"] .batch-announcement-options label,
 		body[data-theme="dark"] #announcement-content,
 		body[data-theme="dark"] .changelog-date,
-		body[data-theme="dark"] .changelog-details li,
 		body[data-theme="dark"] .subject-info h2,
 		body[data-theme="dark"] .subject-info > span,
 		body[data-theme="dark"] .shortcut-sidebar > div {
@@ -1275,7 +1206,6 @@
 			.batch-homework-meta { width: 100%; }
 		}
 		body[data-theme="dark"] .theme-toggle { color: var(--theme-text-primary); }
-
 
 		:root {
 			--radius-card: 14px;
@@ -1475,7 +1405,6 @@
 			height: 16px;
 			accent-color: var(--theme-accent);
 		}
-		.section-card { border-radius: var(--radius-card); }
 		.bound-class-card { border-radius: var(--radius-card); }
 		.bind-code-box { border-radius: var(--radius-control); }
 		.copy-btn { border-radius: var(--radius-control); }
@@ -1608,7 +1537,6 @@
 			gap: 10px;
 			margin-top: 4px;
 		}
-		.ob-pane-1-actions { justify-content: flex-end; }
 		.ob-choices {
 			display: flex;
 			gap: 10px;
@@ -1639,7 +1567,7 @@
 		.ob-code-input {
 			flex: 1 1 auto;
 			min-width: 0;
-			font-family: 'SimSun', '宋体', monospace;
+			font-family: 'Microsoft YaHei', '微软雅黑', monospace;
 			letter-spacing: 2px;
 			text-transform: uppercase;
 		}
@@ -1679,16 +1607,6 @@
 		:where(.btn):disabled,
 		:where(.btn).disabled { border-color: var(--theme-border); }
 
-		.btn-secondary {
-			background-color: var(--theme-section-bg);
-			border: 1px solid var(--theme-border-light);
-			color: var(--theme-text-secondary);
-		}
-		.btn-secondary:hover {
-			background-color: var(--theme-card-hover);
-			color: var(--theme-text-primary);
-		}
-
 		:where(.btn-small) {
 			background-color: var(--theme-section-bg);
 			border: 1px solid var(--theme-border-light);
@@ -1700,7 +1618,6 @@
 		.btn-success,
 		.btn-danger,
 		.btn-warning,
-		.btn-evening,
 		.btn-batch { border-color: transparent; }
 
 		:where(.delete-option-btn),
@@ -1885,39 +1802,28 @@
 		.preview-time.sc-9 { --pt-bg: #EFF1F8; --pt-fg: #5C6C96; } /* 地理 */
 		.preview-time.sc-10 { --pt-bg: #F2F2F4; --pt-fg: #6C6C74; } /* 其他 */
 
-
 		/* 时间标签只出现在导出内容里（预览 / 导出 / 晚自习三处共用），
 		   其内容恒为白底黑字，故一律用浅色档配色，不随主题变化 */
 		#preview-subjects .preview-time.sc-1,
-		#export-area .preview-time.sc-1,
-		#evening-study-content .preview-time.sc-1 { --pt-bg: #EDF2F7; --pt-fg: #53708B; }
+		#export-area .preview-time.sc-1{ --pt-bg: #EDF2F7; --pt-fg: #53708B; }
 		#preview-subjects .preview-time.sc-2,
-		#export-area .preview-time.sc-2,
-		#evening-study-content .preview-time.sc-2 { --pt-bg: #F7EFEF; --pt-fg: #856464; }
+		#export-area .preview-time.sc-2{ --pt-bg: #F7EFEF; --pt-fg: #856464; }
 		#preview-subjects .preview-time.sc-3,
-		#export-area .preview-time.sc-3,
-		#evening-study-content .preview-time.sc-3 { --pt-bg: #EFF4EF; --pt-fg: #577457; }
+		#export-area .preview-time.sc-3{ --pt-bg: #EFF4EF; --pt-fg: #577457; }
 		#preview-subjects .preview-time.sc-4,
-		#export-area .preview-time.sc-4,
-		#evening-study-content .preview-time.sc-4 { --pt-bg: #F3F0F7; --pt-fg: #77648A; }
+		#export-area .preview-time.sc-4{ --pt-bg: #F3F0F7; --pt-fg: #77648A; }
 		#preview-subjects .preview-time.sc-5,
-		#export-area .preview-time.sc-5,
-		#evening-study-content .preview-time.sc-5 { --pt-bg: #FAF5E9; --pt-fg: #806C3C; }
+		#export-area .preview-time.sc-5{ --pt-bg: #FAF5E9; --pt-fg: #806C3C; }
 		#preview-subjects .preview-time.sc-6,
-		#export-area .preview-time.sc-6,
-		#evening-study-content .preview-time.sc-6 { --pt-bg: #F8EEEC; --pt-fg: #935E4D; }
+		#export-area .preview-time.sc-6{ --pt-bg: #F8EEEC; --pt-fg: #935E4D; }
 		#preview-subjects .preview-time.sc-7,
-		#export-area .preview-time.sc-7,
-		#evening-study-content .preview-time.sc-7 { --pt-bg: #F7F3ED; --pt-fg: #826952; }
+		#export-area .preview-time.sc-7{ --pt-bg: #F7F3ED; --pt-fg: #826952; }
 		#preview-subjects .preview-time.sc-8,
-		#export-area .preview-time.sc-8,
-		#evening-study-content .preview-time.sc-8 { --pt-bg: #EDF5F5; --pt-fg: #497575; }
+		#export-area .preview-time.sc-8{ --pt-bg: #EDF5F5; --pt-fg: #497575; }
 		#preview-subjects .preview-time.sc-9,
-		#export-area .preview-time.sc-9,
-		#evening-study-content .preview-time.sc-9 { --pt-bg: #EFF1F8; --pt-fg: #5C6C96; }
+		#export-area .preview-time.sc-9{ --pt-bg: #EFF1F8; --pt-fg: #5C6C96; }
 		#preview-subjects .preview-time.sc-10,
-		#export-area .preview-time.sc-10,
-		#evening-study-content .preview-time.sc-10 { --pt-bg: #F2F2F4; --pt-fg: #6C6C74; }
+		#export-area .preview-time.sc-10{ --pt-bg: #F2F2F4; --pt-fg: #6C6C74; }
 
 /* ============ 配色体系：科目色应用到标题 / 侧栏 / 时间标签 ============ */
 /* --sc-ink 文字色  --sc-fill/-fill2 渐变底（配白字）  --sc-soft 极淡底 */
@@ -1941,7 +1847,6 @@
 		.sc-9 { --sc-ink: #5C6C96; }
 		[data-subject="其他"] { --sc-ink: #6C6C74; --sc-fill: #6C6C74; --sc-fill2: #75757D; --sc-soft: #F2F2F4; }
 		.sc-10 { --sc-ink: #6C6C74; }
-
 
 /* 深色档仅用于「真正在主题背景上」的元素：侧栏文字、编辑模式标题。
    预览 / 导出 / 晚自习的内容区恒为白底，一律用浅色档，不在此列。 */
@@ -1987,12 +1892,17 @@
 		#preview-subjects .preview-subject strong[class] { color: var(--sc-ink, var(--theme-accent)) !important; }
 /* 编辑模式科目标题 */
 		#current-subject-title { color: var(--sc-ink, var(--theme-text-primary)); }
+
+		/* 设置模态框：固定高度，切换标签页时高度保持不变 */
+		#settings-modal .modal-content {
+			height: min(88vh, 860px);
+		}
 </style></head>
 <body class="preview-mode-active" data-theme="dark">
 	<div id="loading-overlay" class="loading-overlay active"><div class="loading-card"><div class="loading-spinner"></div><div id="loading-text" class="loading-text">加载中...</div></div></div>
 	<!-- 顶部导航 -->
 	<div class="header">
-		<h1 style="flex: 0 0 auto;">作业管理器<span style="font-size: 16px; color: #28fa9f; margin-left: 8px;">v3.1.0 教师端</span></h1>
+		<h1 style="flex: 0 0 auto;">作业管理器<span style="font-size: 16px; color: #28fa9f; margin-left: 8px;">v3.2.0 教师端</span></h1>
 		<select id="class-select" class="header-class-select" style="flex: 0 0 auto; margin-left: 12px;" onchange="onClassSelectChange(this.value)"><option value="" disabled selected>请先在设置中绑定班级</option></select>
 		<button class="theme-toggle" onclick="toggleTheme()" title="切换深色/浅色模式" style="position: relative; margin-left: 12px;">
 			<span class="moon-icon"><i class="fa-solid fa-moon"></i></span>
@@ -2000,7 +1910,7 @@
 		</button>
 		<div id="important-date-display" style="flex: 1 1 0%; font-size: 18px; color: rgb(64, 64, 64); white-space: nowrap; text-align: center; transition: opacity 0.5s; opacity: 1;"></div>
 		<div class="header-buttons" style="flex: 0 0 auto;">
-			<button class="btn btn-batch" id="batch-btn" onclick="openBatchDialog()" style="display: none;" title="批量布置作业到多个班级">批量布置</button>
+			<button class="btn btn-batch" id="batch-btn" onclick="openBatchDialog()" title="批量布置作业到多个班级">批量布置</button>
 			<button class="btn btn-success" onclick="handleExport()">导出作业</button>
 			<button class="btn btn-danger" onclick="clearAllHomework()">快捷删除</button>
 			<button class="btn btn-warning" onclick="openSettings()">设置</button>
@@ -2029,7 +1939,7 @@
 		<div class="main-content" id="main-content">
 			<!-- 预览模式 -->
 		<div class="preview-mode" id="preview-mode" style="display: flex;">
-			<div class="preview-subjects" id="preview-subjects"><div style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 0); font-family: &quot;SimSun&quot;, 宋体, sans-serif; font-size: 30px; line-height: 1; text-align: left; position: relative;"><div style="font-size: 33px; margin-bottom: 9px; text-align: left;">班级作业 <span style="font-size: 24px; font-weight: normal; color: #666666;">2026-08-30</span></div><div style="text-align: left; font-size: 30px; line-height: 1;"></div></div></div>
+			<div class="preview-subjects" id="preview-subjects"><div style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 0); font-family: &quot;Times New Roman&quot;, &quot;SimSun&quot;, &quot;宋体&quot;, serif; font-size: 30px; line-height: 1; text-align: left; position: relative;"><div style="font-size: 33px; margin-bottom: 9px; text-align: left;">班级作业 <span style="font-size: 24px; font-weight: normal; color: #666666;">2026-08-30</span></div><div style="text-align: left; font-size: 30px; line-height: 1;"></div></div></div>
 		</div>
 
 		<!-- 编辑模式 -->
@@ -2187,27 +2097,23 @@
 						<div class="changelog-item">
 							<!-- 头部区域 -->
 							<div class="changelog-header">
-								<span class="changelog-version-tag">v3.1.0</span>
-								<span class="changelog-date">2026-09-13</span>
+								<span class="changelog-version-tag">v3.2.0</span>
+								<span class="changelog-date">2026-10-07</span>
 							</div>
 							<!-- 内容主体 -->
 							<div class="changelog-body">
 								<div class="changelog-section">
 									<div class="section-label"><i class="fa-solid fa-sparkles"></i> 新增功能</div>
 									<ul class="changelog-list">
-										<li>新增「作业管理器（本地）」独立版本</li>
-										<li>教师端、课堂端新增「云端作业变更冲突检测」</li>
-										<li>更新提示弹窗新增 Gitee 备用下载地址，便于 GitHub 访问缓慢时下载</li>
+										<li>教师端新增引导页面</li>
+										<li>教师端新增创建班级功能</li>
 									</ul>
 								</div>
 								<div class="changelog-section">
 									<div class="section-label"><i class="fa-solid fa-screwdriver-wrench"></i> 修复与优化</div>
 									<ul class="changelog-list">
-										<li>教师端批量布置容错增强</li>
-										<li>CDN 资源切换至 fastly.jsdelivr.net 镜像，提升部分网络环境下的加载稳定性</li>
-										<li>预览作业等减少 innerHTML 拼接，增强转义与安全性</li>
-										<li>降低多人/多端同时编辑同一班级时，后保存无提示覆盖云端内容的风险</li>
-										<li>修复其他已知问题，提升使用稳定性</li>
+										<li>大幅优化界面 UI</li>
+										<li>删去自动检查更新功能</li>
 									</ul>
 								</div>
 							</div>
@@ -2230,34 +2136,6 @@
 					<p>© 2025-2026 作业管理器. All rights reserved.</p>
 				</div>
 			</div>
-			</div>
-		</div>
-	</div>
-
-	<!-- 更新提示模态框 -->
-	<div id="update-modal" class="modal">
-		<div class="modal-content" style="max-width: 480px;">
-			<div class="modal-header">
-				<h2 class="modal-title"><i class="fa-solid fa-bell"></i>检测到新版本，请更新</h2>
-				<button type="button" class="close-modal" onclick="closeUpdateModal()" aria-label="关闭"><i class="fa-solid fa-xmark"></i></button>
-			</div>
-			<div class="modal-body">
-				<div style="font-size: 15px; line-height: 1.8; color: var(--theme-text-primary, #333);">
-					<div>当前版本：<span id="update-current-version" style="font-weight: 600;"></span></div>
-					<div>最新版本：<span id="update-remote-version" style="font-weight: 600; color: #4F46E5;"></span></div>
-					<div id="update-release-notes" style="margin-top: 12px; padding: 12px; background: var(--theme-section-bg, #f9fafb); border-radius: 6px; font-size: 13px; white-space: pre-wrap; word-break: break-word; max-height: 200px; overflow-y: auto;"></div>
-				</div>
-				<div style="margin-top: 12px; padding: 10px 12px; background: var(--theme-section-bg, #f9fafb); border-left: 3px solid #4F46E5; border-radius: 6px; font-size: 13px; line-height: 1.7; color: var(--theme-text-muted, #6b7280);">
-					<div style="font-weight: 600; color: var(--theme-text-primary, #333); margin-bottom: 4px;"><i class="fa-solid fa-lightbulb"></i> 备用下载地址（Gitee）</div>
-					<div>若 GitHub 访问缓慢或无法打开，可使用备用网址下载：</div>
-					<a href="https://gitee.com/homework_manager/homework-manager" target="_blank" rel="noopener" style="color: #4F46E5; word-break: break-all;">gitee.com/homework_manager/homework-manager</a>
-	 			</div>
-				<div style="display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; flex-wrap: wrap;">
-					<button class="btn btn-secondary" onclick="ignoreUpdateVersion()" title="之后不再提示此版本的更新">忽略此版本</button>
-					<button class="btn btn-secondary" onclick="closeUpdateModal()" title="下次打开页面时再次提醒">稍后更新</button>
-					<button class="btn btn-success" onclick="goToUpdate()"><i class="fa-solid fa-download"></i> 去更新</button>
-					<a id="update-release-link" href="#" target="_blank" rel="noopener" style="display: none;"></a>
-				</div>
 			</div>
 		</div>
 	</div>
@@ -2478,7 +2356,6 @@
 		const $$ = (selector) => document.querySelectorAll(selector);
 
 		const elements = {
-			mainContent: $('#main-content'),
 			previewMode: $('#preview-mode'),
 			editMode: $('#edit-mode'),
 			previewSubjects: $('#preview-subjects'),
@@ -2502,7 +2379,7 @@
 
 		const APP_CONFIG = {
 			"appName": "作业管理器（教师端）",
-			"version": "v3.1.0"
+			"version": "v3.2.0"
 		};
 
 		function showLoadingOverlay(text = '加载中...') {
@@ -2832,7 +2709,6 @@
 				justSetCurrent = true;
 			}
 			refreshClassSelectOptions();
-			updateBatchButtonVisibility();
 			if (justSetCurrent) {
 				await applyCurrentClass(true);
 			}
@@ -2854,7 +2730,6 @@
 			if (currentChanged) {
 				await applyCurrentClass(true);
 			}
-			updateBatchButtonVisibility();
 		}
 
 		async function applyCurrentClass(reloadHomework) {
@@ -3189,110 +3064,6 @@
 			document.getElementById('about-modal').classList.remove('active');
 		}
 
-		/* ==================== 检查更新 ==================== */
-		function parseVersion(versionStr) {
-			const match = String(versionStr || '').match(/(\d+(\.\d+)*)/);
-			if (!match) return [0];
-			return match[1].split('.').map(Number);
-		}
-		function compareVersions(a, b) {
-			const va = parseVersion(a), vb = parseVersion(b);
-			const maxLen = Math.max(va.length, vb.length);
-			for (let i = 0; i < maxLen; i++) {
-				const na = va[i] || 0, nb = vb[i] || 0;
-				if (na > nb) return 1;
-				if (na < nb) return -1;
-			}
-			return 0;
-		}
-		const UPDATE_REPO_API = 'https://api.github.com/repos/lusq5174/homework-manager';
-		const UPDATE_REPO_HOME = 'https://github.com/lusq5174/homework-manager';
-		const IGNORE_KEY = 'ignoredUpdateVersion';
-
-		function getIgnoredVersion() {
-			try { return localStorage.getItem(IGNORE_KEY) || ''; } catch (e) { return ''; }
-		}
-
-		/** 带超时的 fetch，避免网络异常时请求长期挂起（默认 8 秒） */
-		async function fetchWithTimeout(url, options, timeout) {
-			const ms = timeout || 8000;
-			if (typeof AbortController === 'undefined') return fetch(url, options);
-			const ctrl = new AbortController();
-			const timer = setTimeout(() => ctrl.abort(), ms);
-			try {
-				return await fetch(url, Object.assign({}, options, { signal: ctrl.signal }));
-			} finally {
-				clearTimeout(timer);
-			}
-		}
-
-		/** 每次打开页面时调用：拉取最新发行版版本号并与本地版本比对 */
-		async function checkForUpdates() {
-			try {
-				const ghHeaders = { 'Accept': 'application/vnd.github+json' };
-				let remoteVersion = '';
-				let releaseUrl = UPDATE_REPO_HOME;
-				let releaseNotes = '';
-
-				// 优先取最新发行版；仓库若只打 Tag 未发 Release，则回退取最新 Tag
-				const resp = await fetchWithTimeout(UPDATE_REPO_API + '/releases/latest', { headers: ghHeaders });
-				if (resp.ok) {
-					const data = await resp.json();
-					remoteVersion = (data && data.tag_name) || '';
-					releaseUrl = (data && data.html_url) || UPDATE_REPO_HOME;
-					releaseNotes = (data && data.body) || '';
-				} else {
-					const tagResp = await fetchWithTimeout(UPDATE_REPO_API + '/tags?per_page=1', { headers: ghHeaders });
-					if (!tagResp.ok) return;
-					const tags = await tagResp.json();
-					if (!Array.isArray(tags) || !tags.length || !tags[0].name) return;
-					remoteVersion = tags[0].name;
-					releaseUrl = UPDATE_REPO_HOME + '/releases';
-				}
-				if (!remoteVersion) return;
-
-				if (compareVersions(remoteVersion, APP_CONFIG.version) > 0) {
-					// 仅当远端版本更高时提示；该版本已被忽略则不再打扰
-					if (getIgnoredVersion() === remoteVersion) {
-						console.log('[更新检测] 版本 ' + remoteVersion + ' 已被忽略');
-						return;
-					}
-					console.log('[更新检测] 检测到新版本：' + remoteVersion + '（当前 ' + APP_CONFIG.version + '）');
-					showUpdateModal(remoteVersion, releaseUrl, releaseNotes);
-				} else {
-					console.log('一致');
-				}
-			} catch (e) { /* 网络错误静默处理，不影响正常使用 */ }
-		}
-		function showUpdateModal(remoteVersion, releaseUrl, releaseNotes) {
-			const modal = document.getElementById('update-modal');
-			if (!modal) return;
-			document.getElementById('update-remote-version').textContent = remoteVersion;
-			document.getElementById('update-current-version').textContent = APP_CONFIG.version;
-			const link = document.getElementById('update-release-link');
-			if (link) link.href = releaseUrl || UPDATE_REPO_HOME;
-			const notesEl = document.getElementById('update-release-notes');
-			if (notesEl) notesEl.textContent = releaseNotes ? releaseNotes.slice(0, 500) + (releaseNotes.length > 500 ? '...' : '') : '';
-			modal.classList.add('active');
-		}
-		function closeUpdateModal() {
-			const modal = document.getElementById('update-modal');
-			if (modal) modal.classList.remove('active');
-		}
-		/**「去更新」：在新标签页打开发行版下载页 */
-		function goToUpdate() {
-			const link = document.getElementById('update-release-link');
-			const url = (link && link.href && link.href !== '#') ? link.href : UPDATE_REPO_HOME;
-			try { window.open(url, '_blank', 'noopener'); } catch (e) { location.href = url; }
-			closeUpdateModal();
-		}
-		/**「忽略此版本」：记录版本号，之后不再提示该版本 */
-		function ignoreUpdateVersion() {
-			const vEl = document.getElementById('update-remote-version');
-			try { localStorage.setItem(IGNORE_KEY, (vEl && vEl.textContent) || ''); } catch (e) {}
-			closeUpdateModal();
-		}
-
 		async function saveClassSettings() {
 			const nmEl = document.getElementById("cls-class-name");
 			const etEl = document.getElementById("cls-export-title");
@@ -3401,7 +3172,6 @@
 			refreshClassSelectOptions();
 			renderBoundClassesUI();
 			updateClassSettingsUI();
-			updateBatchButtonVisibility();
 			await applyCurrentClass(true);
 			return true;
 		}
@@ -3827,7 +3597,6 @@
 			ensureSupabase();
 
 			refreshClassSelectOptions();
-			updateBatchButtonVisibility();
 			applyVariantUI();
 
 			initHomeworkData();
@@ -3844,7 +3613,6 @@
 					applyVariantUI();
 				} finally {
 					hideLoadingOverlay();
-					if (!firstRun) checkForUpdates();
 				}
 			})();
 		}
@@ -4232,7 +4000,7 @@
 			const exportContent = document.createElement('div');
 			exportContent.style.backgroundColor = '#ffffff';
 			exportContent.style.color = '#000000';
-			exportContent.style.fontFamily = "'SimSun', '宋体', sans-serif";
+			exportContent.style.fontFamily = "'Times New Roman', 'SimSun', '宋体', serif";
 			exportContent.style.fontSize = `${classSettings.exportFontSize}px`;
 			exportContent.style.lineHeight = '1';
 			exportContent.style.textAlign = 'left';
@@ -4408,11 +4176,6 @@
 			}
 		}
 
-		async function exportToImage() {
-			const ok = await renderAndDownloadPNG(`${new Date().toISOString().split('T')[0]}.png`);
-			if (!ok) alert('导出图片失败，请重试');
-		}
-
 		// 清空所有作业
 		function clearAllHomework() {
 			if (confirm('确定要清空所有科目的作业吗？此操作不可恢复。（锁定的作业项将被保留）')) {
@@ -4525,13 +4288,6 @@
 		}
 
 		/* ==================== 批量模式 ==================== */
-		function updateBatchButtonVisibility() {
-			const btn = document.getElementById('batch-btn');
-			if (!btn) return;
-			if (boundClasses.length >= 2) { btn.style.display = ''; }
-			else { btn.style.display = 'none'; }
-		}
-
 		function openBatchDialog() {
 			renderClassCheckList('batch-class-list', 'batch-cls-');
 			onBatchTypeChange();
@@ -4752,11 +4508,7 @@
 
 		/* ==================== 多班级导出 ==================== */
 		function handleExport() {
-			if (boundClasses.length >= 2) {
-				openExportDialog();
-			} else {
-				exportToImage();
-			}
+			openExportDialog();
 		}
 
 		function openExportDialog() {

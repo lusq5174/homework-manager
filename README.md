@@ -2,7 +2,7 @@
 
 # 作业管理器 Homework Manager
 
-![Version](https://img.shields.io/badge/version-3.1.0-blue)
+![Version](https://img.shields.io/badge/version-3.2.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Status](https://img.shields.io/badge/status-stable-brightgreen)
 
@@ -83,7 +83,7 @@
 
 ## 快速开始
 
-以下将 `作业管理器（教师端）.html` 、 `作业管理器（课堂端）.html` 和 `作业管理器（本地）.html` 统称为 `作业管理器.html`。
+项目提供课堂端、本地版、教师端三个版本，源码分别位于 `class/`、`local/`、`teacher/`；运行 `node build.js` 后会合并为 `dist/class.html`、`dist/local.html`、`dist/teacher.html` 三个单文件 HTML。以下将它们统称为 `作业管理器.html`。
 
 ### 方式一：本地直接使用
 
@@ -382,13 +382,17 @@ globalSettings = {
 
 ```
 homework-manager/
-├── 作业管理器（教师端）.html   # 主应用文件（教师端）
-├── 作业管理器（课堂端）.html   # 主应用文件（课堂端）
-├── 作业管理器（本地）.html      # 主应用文件（本地版）
-├── 使用须知.pdf              # 面向普通用户的使用须知文档
+├── class/                   # 课堂端源码（index.html + style.css + script.js）
+├── local/                   # 本地版源码（index.html + style.css + script.js）
+├── teacher/                 # 教师端源码（index.html + style.css + script.js）
+├── dist/                    # 构建产物（class.html / local.html / teacher.html，由 build.js 生成）
+├── build.js                 # 合并脚本：三端源码 → 单文件 HTML
+├── index.html               # 本地版产物（GitHub Pages 入口，由 build.js 自动生成）
 ├── README.md                # 项目说明文档（本文件）
 └── LICENSE                  # 开源许可证文件
 ```
+
+> 三端源码修改后，运行 `node build.js` 重新生成 `dist/` 下的单文件 HTML；CI 也会在 push 时自动构建并回写 `dist/`。
 
 本项目采用单文件架构，所有 HTML 结构、CSS 样式、JavaScript 逻辑均包含在一个 HTML 文件中。这种设计的优势在于：
 

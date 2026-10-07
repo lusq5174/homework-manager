@@ -37,15 +37,16 @@ jobs:
           path: dist/*.html
           if-no-files-found: error
 
-      - name: 提交 dist 回仓库
+      - name: 提交 dist 与 Pages 入口回仓库
         # 只在 push / 手动触发时回写，PR 仅作校验，不落库
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -f dist
+          git add -f index.html
           if git diff --cached --quiet; then
-            echo "dist 无变化，跳过提交"
+            echo "dist / index.html 无变化，跳过提交"
           else
             git commit -m "chore(dist): 重新生成单文件 HTML [skip ci]"
             git push

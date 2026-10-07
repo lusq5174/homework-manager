@@ -2,11 +2,15 @@
 			margin: 0;
 			padding: 0;
 			box-sizing: border-box;
-			font-family: 'SimSun', '宋体', sans-serif;
+			/* 这里必须用 inherit，不能写死字体：
+			   作业预览/导出区的根节点内联了 SimSun，靠子元素继承生效；
+			   若在 * 上写死字体，会直接命中每个后代元素（直接声明优先于继承），
+			   把继承下来的宋体覆盖成雅黑。UI 默认字体由 body 提供。 */
+			font-family: inherit;
 		}
 
 		body {
-			font-family: 'SimSun', '宋体', sans-serif;
+			font-family: 'Microsoft YaHei', '微软雅黑', sans-serif;
 			background: linear-gradient(to bottom right, #f0f9ff, #e0f2fe, #ede9fe);
 			min-height: 100vh;
 			overflow-x: hidden;
@@ -622,24 +626,6 @@
 		body:not(.preview-mode-active) #class-select {
 			display: none;
 		}
-		.section-card {
-			border: 1px solid #e5e7eb;
-			border-radius: 8px;
-			padding: 16px;
-			margin-bottom: 16px;
-			background: #f9fafb;
-		}
-		.section-card-title {
-			color: #1f2937;
-		}
-		.section-title {
-			font-size: 16px;
-			font-weight: 700;
-			color: #1f2937;
-			margin-bottom: 12px;
-			border-bottom: 1px solid #e5e7eb;
-			padding-bottom: 8px;
-		}
 		.section-tip {
 			font-size: 16px;
 			color: #b45309;
@@ -695,7 +681,7 @@
 			background: #f3f4f6;
 			color: #1f2937;
 			font-size: 14px;
-			font-family: 'SimSun', '宋体', monospace;
+			font-family: 'Microsoft YaHei', '微软雅黑', monospace;
 		}
 		.bound-class-grid {
 			display: flex;
@@ -731,7 +717,7 @@
 		.bound-class-card .bc-code {
 			font-size: 14px;
 			color: #1f2937;
-			font-family: 'SimSun', '宋体', monospace;
+			font-family: 'Microsoft YaHei', '微软雅黑', monospace;
 			background: #f3f4f6;
 			padding: 6px;
 			border-radius: 4px;
@@ -822,33 +808,9 @@
 			padding: 12px;
 			border-radius: 8px;
 		}
-		.changelog-version {
-			font-size: 14px;
-			font-weight: 600;
-			color: #4F46E5;
-			margin-right: 12px;
-		}
 		.changelog-date {
 			font-size: 12px;
 			color: #9ca3af;
-		}
-		.changelog-details {
-			list-style: none;
-			padding: 0;
-			margin: 8px 0 0 0;
-		}
-		.changelog-details li {
-			font-size: 13px;
-			color: #6b7280;
-			padding-left: 16px;
-			position: relative;
-			margin-bottom: 4px;
-		}
-		.changelog-details li::before {
-			content: '•';
-			position: absolute;
-			left: 0;
-			color: #4F46E5;
 		}
 
 		/* 版本头部 */
@@ -907,26 +869,6 @@
 			font-weight: bold;
 		}
 
-		/* 子列表（缩进） */
-		.changelog-sublist {
-		list-style: none;
-			padding-left: 6px;
-			margin: 2px 0 4px 0;
-		}
-		.changelog-sublist li {
-			font-size: 13px;
-			color: #6b7280;
-			padding-left: 10px;
-			position: relative;
-			margin-bottom: 2px;
-		}
-		.changelog-sublist li::before {
-			content: "◦";
-			position: absolute;
-			left: 0;
-			color: #9ca3af;
-		}
-
 		/* 深色模式适配 */
 		body[data-theme="dark"] .changelog-version-tag {
 			background: #1e293b;
@@ -938,12 +880,6 @@
 		}
 		body[data-theme="dark"] .changelog-list > li {
 			color: #cbd5e1;
-		}
-		body[data-theme="dark"] .changelog-sublist li {
-			color: #94a3b8;
-		}
-		body[data-theme="dark"] .changelog-sublist li strong {
-			color: #e2e8f0;
 		}
 
 		.about-dev-info {
@@ -1018,10 +954,7 @@
 		body[data-theme="dark"] .shortcut-item { background-color: var(--theme-section-bg); color: var(--theme-text-secondary); border-color: var(--theme-border-light); }
 		body[data-theme="dark"] .shortcut-item:hover { background-color: var(--theme-card-hover); }
 		body[data-theme="dark"] .modal-content { background-color: var(--theme-modal-bg); }
-		body[data-theme="dark"] .modal-header h2,
-		body[data-theme="dark"] .section-title { color: var(--theme-text-primary); }
-		body[data-theme="dark"] .section-card { background: var(--theme-section-bg); border-color: var(--theme-border); }
-		body[data-theme="dark"] .section-card-title { color: var(--theme-text-primary); }
+		body[data-theme="dark"] .modal-header h2{ color: var(--theme-text-primary); }
 		body[data-theme="dark"] .row-flex label,
 		body[data-theme="dark"] .setting-item label,
 		body[data-theme="dark"] .checkbox-row label { color: var(--theme-text-secondary); }
@@ -1041,7 +974,6 @@
 		body[data-theme="dark"] .about-dev-info { color: var(--theme-text-muted); }
 		body[data-theme="dark"] .about-dev-info strong { color: var(--theme-text-secondary); }
 		body[data-theme="dark"] .changelog-item { background-color: var(--theme-section-bg); }
-		body[data-theme="dark"] .changelog-version { color: var(--theme-accent); }
 		body[data-theme="dark"] .about-copyright p { color: var(--theme-text-muted); }
 		body[data-theme="dark"] .time-dropdown { background-color: var(--theme-modal-bg); border-color: var(--theme-border); }
 		body[data-theme="dark"] .time-option:hover { background-color: var(--theme-card-hover); }
@@ -1235,7 +1167,6 @@
 		body[data-theme="dark"] .batch-announcement-options label,
 		body[data-theme="dark"] #announcement-content,
 		body[data-theme="dark"] .changelog-date,
-		body[data-theme="dark"] .changelog-details li,
 		body[data-theme="dark"] .subject-info h2,
 		body[data-theme="dark"] .subject-info > span,
 		body[data-theme="dark"] .shortcut-sidebar > div {
@@ -1262,7 +1193,6 @@
 			.batch-homework-meta { width: 100%; }
 		}
 		body[data-theme="dark"] .theme-toggle { color: var(--theme-text-primary); }
-
 
 		:root {
 			--radius-card: 14px;
@@ -1462,7 +1392,6 @@
 			height: 16px;
 			accent-color: var(--theme-accent);
 		}
-		.section-card { border-radius: var(--radius-card); }
 		.bound-class-card { border-radius: var(--radius-card); }
 		.bind-code-box { border-radius: var(--radius-control); }
 		.copy-btn { border-radius: var(--radius-control); }
@@ -1595,7 +1524,6 @@
 			gap: 10px;
 			margin-top: 4px;
 		}
-		.ob-pane-1-actions { justify-content: flex-end; }
 		.ob-choices {
 			display: flex;
 			gap: 10px;
@@ -1626,7 +1554,7 @@
 		.ob-code-input {
 			flex: 1 1 auto;
 			min-width: 0;
-			font-family: 'SimSun', '宋体', monospace;
+			font-family: 'Microsoft YaHei', '微软雅黑', monospace;
 			letter-spacing: 2px;
 			text-transform: uppercase;
 		}
@@ -1666,16 +1594,6 @@
 		:where(.btn):disabled,
 		:where(.btn).disabled { border-color: var(--theme-border); }
 
-		.btn-secondary {
-			background-color: var(--theme-section-bg);
-			border: 1px solid var(--theme-border-light);
-			color: var(--theme-text-secondary);
-		}
-		.btn-secondary:hover {
-			background-color: var(--theme-card-hover);
-			color: var(--theme-text-primary);
-		}
-
 		:where(.btn-small) {
 			background-color: var(--theme-section-bg);
 			border: 1px solid var(--theme-border-light);
@@ -1687,7 +1605,6 @@
 		.btn-success,
 		.btn-danger,
 		.btn-warning,
-		.btn-evening,
 		.btn-batch { border-color: transparent; }
 
 		:where(.delete-option-btn),
@@ -1872,39 +1789,28 @@
 		.preview-time.sc-9 { --pt-bg: #EFF1F8; --pt-fg: #5C6C96; } /* 地理 */
 		.preview-time.sc-10 { --pt-bg: #F2F2F4; --pt-fg: #6C6C74; } /* 其他 */
 
-
 		/* 时间标签只出现在导出内容里（预览 / 导出 / 晚自习三处共用），
 		   其内容恒为白底黑字，故一律用浅色档配色，不随主题变化 */
 		#preview-subjects .preview-time.sc-1,
-		#export-area .preview-time.sc-1,
-		#evening-study-content .preview-time.sc-1 { --pt-bg: #EDF2F7; --pt-fg: #53708B; }
+		#export-area .preview-time.sc-1{ --pt-bg: #EDF2F7; --pt-fg: #53708B; }
 		#preview-subjects .preview-time.sc-2,
-		#export-area .preview-time.sc-2,
-		#evening-study-content .preview-time.sc-2 { --pt-bg: #F7EFEF; --pt-fg: #856464; }
+		#export-area .preview-time.sc-2{ --pt-bg: #F7EFEF; --pt-fg: #856464; }
 		#preview-subjects .preview-time.sc-3,
-		#export-area .preview-time.sc-3,
-		#evening-study-content .preview-time.sc-3 { --pt-bg: #EFF4EF; --pt-fg: #577457; }
+		#export-area .preview-time.sc-3{ --pt-bg: #EFF4EF; --pt-fg: #577457; }
 		#preview-subjects .preview-time.sc-4,
-		#export-area .preview-time.sc-4,
-		#evening-study-content .preview-time.sc-4 { --pt-bg: #F3F0F7; --pt-fg: #77648A; }
+		#export-area .preview-time.sc-4{ --pt-bg: #F3F0F7; --pt-fg: #77648A; }
 		#preview-subjects .preview-time.sc-5,
-		#export-area .preview-time.sc-5,
-		#evening-study-content .preview-time.sc-5 { --pt-bg: #FAF5E9; --pt-fg: #806C3C; }
+		#export-area .preview-time.sc-5{ --pt-bg: #FAF5E9; --pt-fg: #806C3C; }
 		#preview-subjects .preview-time.sc-6,
-		#export-area .preview-time.sc-6,
-		#evening-study-content .preview-time.sc-6 { --pt-bg: #F8EEEC; --pt-fg: #935E4D; }
+		#export-area .preview-time.sc-6{ --pt-bg: #F8EEEC; --pt-fg: #935E4D; }
 		#preview-subjects .preview-time.sc-7,
-		#export-area .preview-time.sc-7,
-		#evening-study-content .preview-time.sc-7 { --pt-bg: #F7F3ED; --pt-fg: #826952; }
+		#export-area .preview-time.sc-7{ --pt-bg: #F7F3ED; --pt-fg: #826952; }
 		#preview-subjects .preview-time.sc-8,
-		#export-area .preview-time.sc-8,
-		#evening-study-content .preview-time.sc-8 { --pt-bg: #EDF5F5; --pt-fg: #497575; }
+		#export-area .preview-time.sc-8{ --pt-bg: #EDF5F5; --pt-fg: #497575; }
 		#preview-subjects .preview-time.sc-9,
-		#export-area .preview-time.sc-9,
-		#evening-study-content .preview-time.sc-9 { --pt-bg: #EFF1F8; --pt-fg: #5C6C96; }
+		#export-area .preview-time.sc-9{ --pt-bg: #EFF1F8; --pt-fg: #5C6C96; }
 		#preview-subjects .preview-time.sc-10,
-		#export-area .preview-time.sc-10,
-		#evening-study-content .preview-time.sc-10 { --pt-bg: #F2F2F4; --pt-fg: #6C6C74; }
+		#export-area .preview-time.sc-10{ --pt-bg: #F2F2F4; --pt-fg: #6C6C74; }
 
 /* ============ 配色体系：科目色应用到标题 / 侧栏 / 时间标签 ============ */
 /* --sc-ink 文字色  --sc-fill/-fill2 渐变底（配白字）  --sc-soft 极淡底 */
@@ -1928,7 +1834,6 @@
 		.sc-9 { --sc-ink: #5C6C96; }
 		[data-subject="其他"] { --sc-ink: #6C6C74; --sc-fill: #6C6C74; --sc-fill2: #75757D; --sc-soft: #F2F2F4; }
 		.sc-10 { --sc-ink: #6C6C74; }
-
 
 /* 深色档仅用于「真正在主题背景上」的元素：侧栏文字、编辑模式标题。
    预览 / 导出 / 晚自习的内容区恒为白底，一律用浅色档，不在此列。 */
@@ -1974,3 +1879,8 @@
 		#preview-subjects .preview-subject strong[class] { color: var(--sc-ink, var(--theme-accent)) !important; }
 /* 编辑模式科目标题 */
 		#current-subject-title { color: var(--sc-ink, var(--theme-text-primary)); }
+
+		/* 设置模态框：固定高度，切换标签页时高度保持不变 */
+		#settings-modal .modal-content {
+			height: min(88vh, 860px);
+		}

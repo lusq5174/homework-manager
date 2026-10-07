@@ -2,6 +2,7 @@
 /**
  * 把 class / local / teacher 三个目录下的 index.html + style.css + script.js
  * 合并为三个单文件 HTML，输出到 dist/
+ * 其中 local 版会额外同步一份到根目录 index.html（作为 GitHub Pages 入口）。
  *
  * 用法： node build.js
  */
@@ -10,7 +11,7 @@ const path = require('path');
 
 const APPS = [
 	{ dir: 'class', out: 'class.html' },
-	{ dir: 'local', out: 'local.html' },
+	{ dir: 'local', out: 'local.html', copyTo: 'index.html' },
 	{ dir: 'teacher', out: 'teacher.html' }
 ];
 
@@ -83,6 +84,12 @@ function main() {
 
 		const kb = (Buffer.byteLength(merged, 'utf8') / 1024).toFixed(1);
 		console.log(`✔ ${app.dir}/ → dist/${app.out}  (${kb} KB)`);
+
+		// GitHub Pages 入口：根 index.html 必须与本地版产物保持一致
+		if (app.copyTo) {
+			fs.writeFileSync(path.join(root, app.copyTo), merged, 'utf8');
+			console.log(`  ↳ 同步至 ${app.copyTo}（GitHub Pages 入口）`);
+		}
 	}
 
 	console.log(`\n完成，共 ${APPS.length} 个文件，输出目录：${path.relative(process.cwd(), dist) || 'dist'}/`);
